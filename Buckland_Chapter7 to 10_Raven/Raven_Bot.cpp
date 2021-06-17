@@ -23,7 +23,7 @@
 #include "Debug/DebugConsole.h"
 
 //-------------------------- ctor ---------------------------------------------
-Raven_Bot::Raven_Bot(Raven_Game* world,Vector2D pos):
+Raven_Bot::Raven_Bot(Raven_Game* world,Vector2D pos,int equipe):
 
   MovingEntity(pos,
                script->GetDouble("Bot_Scale"),
@@ -46,7 +46,8 @@ Raven_Bot::Raven_Bot(Raven_Game* world,Vector2D pos):
                  m_iScore(0),
                  m_Status(spawning),
                  m_bPossessed(false),
-                 m_dFieldOfView(DegsToRads(script->GetDouble("Bot_FOV")))
+                 m_dFieldOfView(DegsToRads(script->GetDouble("Bot_FOV"))),
+                 m_iEquipe(equipe)
            
 {
   SetEntityType(type_bot);
@@ -571,6 +572,13 @@ void Raven_Bot::SetUpVertexBuffer()
 
 
 void Raven_Bot::RestoreHealthToMaximum(){m_iHealth = m_iMaxHealth;}
+
+void Raven_Bot::ChangerEquipe(unsigned int val)
+{
+    m_iEquipe = val;
+
+    debug_con << "Bot " << this->ID() << " is sent to team " << this->Equipe() << "";
+}
 
 void Raven_Bot::IncreaseHealth(unsigned int val)
 {

@@ -250,7 +250,7 @@ void Raven_Game::AddBots(unsigned int NumBotsToAdd)
   {
     //create a bot. (its position is irrelevant at this point because it will
     //not be rendered until it is spawned)
-    Raven_Bot* rb = new Raven_Bot(this, Vector2D());
+    Raven_Bot* rb = new Raven_Bot(this, Vector2D(),0);
 
     //switch the default steering behaviors on
     rb->GetSteering()->WallAvoidanceOn();
@@ -470,6 +470,32 @@ void Raven_Game::ClickRightMouseButton(POINTS p)
       m_pSelectedBot->GetBrain()->AddGoal_MoveToPosition(POINTStoVector(p));
     }
   }
+}
+
+//-------------------------- ShiftANDClickRightMouseButton -----------------------------
+//
+//  this method is called when the user clicks the right mouse button while pressing the Shift button.
+//
+//  the method checks to see if a bot is beneath the cursor. If so, the bot
+//  is recorded as beeing in a team
+//-----------------------------------------------------------------------------
+void Raven_Game::ShiftANDClickRightMouseButton(POINTS p)
+{
+    Raven_Bot* pBot = GetBotAtPosition(POINTStoVector(p));
+
+    //if there is no selected bot just return;
+    if (!pBot && m_pSelectedBot == NULL) return;
+
+    //if the user clicks on a bot in no team, he is put in team 1
+    if (pBot && pBot->Equipe()==0)
+    {
+        pBot->ChangerEquipe(1);
+        return;
+    }
+    else if(pBot && pBot->Equipe() != 0){
+        pBot->ChangerEquipe(0);
+        return;
+    }
 }
 
 //---------------------- ClickLeftMouseButton ---------------------------------

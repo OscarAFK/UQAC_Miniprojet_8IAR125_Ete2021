@@ -140,6 +140,11 @@ public:
   // bot/s will attempt to move to that position.
   void        ClickRightMouseButton(POINTS p);
 
+  //this method is called when the user clicks the right mouse button while pressing the shift button.
+  //The method checks to see if a bot is beneath the cursor. If so, the bot
+  //is recorded as beeing in a team
+  void        ShiftANDClickRightMouseButton(POINTS p);
+
   //this method is called when the user clicks the left mouse button. If there
   //is a possessed bot, this fires the weapon, else does nothing
   void        ClickLeftMouseButton(POINTS p);

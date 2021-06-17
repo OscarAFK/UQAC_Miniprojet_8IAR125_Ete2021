@@ -83,6 +83,9 @@ private:
 
   //each time this bot kills another this value is incremented
   int                                m_iScore;
+
+  //Définit l'équipe dans laquelle se trouve l'agent
+  int								 m_iEquipe;
   
   //the direction the bot is facing (and therefore the direction of aim). 
   //Note that this may not be the same as the bot's heading, which always
@@ -125,7 +128,7 @@ private:
 
 public:
   
-  Raven_Bot(Raven_Game* world, Vector2D pos);
+  Raven_Bot(Raven_Game* world, Vector2D pos, int equipe);
   virtual ~Raven_Bot();
 
   //the usual suspects
@@ -145,6 +148,8 @@ public:
   void          ReduceHealth(unsigned int val);
   void          IncreaseHealth(unsigned int val);
   void          RestoreHealthToMaximum();
+  int			Equipe()const { return m_iEquipe; }
+  void          ChangerEquipe(unsigned int val);
 
   int           Score()const{return m_iScore;}
   void          IncrementScore(){++m_iScore;}

@@ -187,7 +187,12 @@ LRESULT CALLBACK WindowProc (HWND   hwnd,
 
    case WM_RBUTTONDOWN:
     {
-      g_pRaven->ClickRightMouseButton(MAKEPOINTS(lParam));
+       if (GetKeyState(VK_SHIFT) < 0) {
+           g_pRaven->ShiftANDClickRightMouseButton(MAKEPOINTS(lParam));
+       }
+       else {
+           g_pRaven->ClickRightMouseButton(MAKEPOINTS(lParam));
+       }
     }
     
     break;
