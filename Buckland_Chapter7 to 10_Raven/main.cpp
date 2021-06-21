@@ -180,7 +180,12 @@ LRESULT CALLBACK WindowProc (HWND   hwnd,
 
     case WM_LBUTTONDOWN:
     {
-      g_pRaven->ClickLeftMouseButton(MAKEPOINTS(lParam));
+        if (GetKeyState(VK_SHIFT) < 0) {
+            g_pRaven->ShiftANDClickLeftMouseButton(MAKEPOINTS(lParam));
+        }
+        else {
+            g_pRaven->ClickLeftMouseButton(MAKEPOINTS(lParam));
+        }
     }
     
     break;

@@ -7,7 +7,8 @@
 //-------------------------------- ctor ---------------------------------------
 //-----------------------------------------------------------------------------
 Raven_TargetingSystem::Raven_TargetingSystem(Raven_Bot* owner):m_pOwner(owner),
-                                                               m_pCurrentTarget(0)
+                                                               m_pCurrentTarget(0),
+                                                               m_pBotDesignedByPlayer(0)
 {}
 
 
@@ -18,7 +19,7 @@ Raven_TargetingSystem::Raven_TargetingSystem(Raven_Bot* owner):m_pOwner(owner),
 void Raven_TargetingSystem::Update()
 {
   double ClosestDistSoFar = MaxDouble;
-  m_pCurrentTarget       = 0;
+  m_pCurrentTarget       = m_pBotDesignedByPlayer;
 
   //grab a list of all the opponents the owner can sense
   std::list<Raven_Bot*> SensedBots;
@@ -27,7 +28,7 @@ void Raven_TargetingSystem::Update()
   std::list<Raven_Bot*>::const_iterator curBot = SensedBots.begin();
   for (curBot; curBot != SensedBots.end(); ++curBot)
   {
-    //make sure the bot is alive and that it is not the owner, and that he isn't in the same team or in free-for-all
+    //make sure the bot is alive, that it is not the owner, and that he isn't in the same team or in free-for-all
     if ((*curBot)->isAlive() && (*curBot != m_pOwner) && (m_pOwner->Equipe()!=(*curBot)->Equipe() || (*curBot)->Equipe()==0))
     {
       double dist = Vec2DDistanceSq((*curBot)->Pos(), m_pOwner->Pos());
