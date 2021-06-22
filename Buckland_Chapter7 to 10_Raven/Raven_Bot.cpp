@@ -47,7 +47,8 @@ Raven_Bot::Raven_Bot(Raven_Game* world,Vector2D pos,int equipe):
                  m_Status(spawning),
                  m_bPossessed(false),
                  m_dFieldOfView(DegsToRads(script->GetDouble("Bot_FOV"))),
-                 m_iEquipe(equipe)
+                 m_iEquipe(equipe),
+                 m_bIsTarget(false)
            
 {
   SetEntityType(type_bot);
@@ -276,6 +277,18 @@ bool Raven_Bot::HandleMessage(const Telegram& msg)
       return true;
     }
 
+  case Msg_UserHasDesignatedATarget:
+  {
+      GetTargetSys()->SetTargetPlayer((Raven_Bot*)msg.ExtraInfo);
+      GetSensoryMem()->UpdateWithSoundSource((Raven_Bot*)msg.ExtraInfo);
+      return true;
+  }
+
+  case Msg_UserHasRemovedTarget:
+  {
+      GetTargetSys()->ClearTargetPlayer();
+      return true;
+  }
 
   default: return false;
   }
@@ -357,6 +370,22 @@ void Raven_Bot::TakePossession()
     debug_con << "Player Possesses bot " << this->ID() << "";
   }
 }
+
+//--------------------------- SetIsTarget -----------------------------------------
+//
+//  this is called to set if this bot is a target or not
+//-----------------------------------------------------------------------------
+void Raven_Bot::SetIsTarget(bool val)
+{
+    m_bIsTarget = val;
+
+    if(val)
+        debug_con << "Bot " << this->ID() << " is the new target" << "";
+    else
+        debug_con << "Bot " << this->ID() << " is no longer the target" << "";
+}
+
+
 //------------------------------- Exorcise ------------------------------------
 //
 //  called when a human is exorcised from this bot and the AI takes control

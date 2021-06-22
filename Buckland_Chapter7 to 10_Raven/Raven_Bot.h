@@ -67,6 +67,7 @@ private:
   //shooting them
   Raven_WeaponSystem*                m_pWeaponSys;
 
+
   //A regulator object limits the update frequency of a specific AI component
   Regulator*                         m_pWeaponSelectionRegulator;
   Regulator*                         m_pGoalArbitrationRegulator;
@@ -107,6 +108,9 @@ private:
 
   //set to true when a human player takes over control of the bot
   bool                               m_bPossessed;
+
+  //set to true when a human player is targeting this bot
+  bool                               m_bIsTarget;
 
   //a vertex buffer containing the bot's geometry
   std::vector<Vector2D>              m_vecBotVB;
@@ -158,6 +162,7 @@ public:
   double        FieldOfView()const{return m_dFieldOfView;}
 
   bool          isPossessed()const{return m_bPossessed;}
+  bool          isTarget()const{return m_bIsTarget;}
   bool          isDead()const{return m_Status == dead;}
   bool          isAlive()const{return m_Status == alive;}
   bool          isSpawning()const{return m_Status == spawning;}
@@ -178,6 +183,7 @@ public:
   void          FireWeapon(Vector2D pos);
   void          ChangeWeapon(unsigned int type);
   void          TakePossession();
+  void          SetIsTarget(bool val);
   void          Exorcise();
 
   //spawns the bot at the given position

@@ -26,8 +26,6 @@
 #include "goals/Goal_Think.h"
 #include "goals/Raven_Goal_Types.h"
 
-
-
 //uncomment to write object creation/deletion to debug console
 //#define  LOG_CREATIONAL_STUFF
 
@@ -484,7 +482,7 @@ void Raven_Game::ShiftANDClickRightMouseButton(POINTS p)
     Raven_Bot* pBot = GetBotAtPosition(POINTStoVector(p));
 
     //if there is no selected bot just return;
-    if (!pBot && m_pSelectedBot == NULL) return;
+    if (!pBot) return;
 
     //if the user clicks on a bot in no team, he is put in team 1
     if (pBot && pBot->Equipe()==0)
@@ -497,6 +495,81 @@ void Raven_Game::ShiftANDClickRightMouseButton(POINTS p)
         return;
     }
 }
+
+//-------------------------- ShiftANDClickLeftMouseButton -----------------------------
+//
+//  this method is called when the user clicks the right mouse button while pressing the Shift button.
+//
+//  The method checks to see if a bot is beneath the cursor. If so, the bot
+//  is designed has the target for the bots of the team
+//-----------------------------------------------------------------------------
+void Raven_Game::ShiftANDClickLeftMouseButton(POINTS p)
+{
+    Raven_Bot* pBot = GetBotAtPosition(POINTStoVector(p));
+
+    //if there is no selected bot just return;
+    if (!pBot || m_pSelectedBot == NULL) return;
+
+    //if the user clicks on a bot in another team, this bot is selected has the target for the team
+    if (pBot && pBot->Equipe() != m_pSelectedBot->Equipe())
+    {
+        if (pBot->isTarget()) {
+            pBot->SetIsTarget(false);
+            NotifyBotsOfTeamToRemoveTarget();
+        }
+        else {
+            pBot->SetIsTarget(true);
+            std::list<Raven_Bot*>::const_iterator curBot = m_Bots.begin();
+            for (curBot; curBot != m_Bots.end(); ++curBot)
+                if((*curBot)!=pBot && (*curBot)->isTarget())
+                    (*curBot)->SetIsTarget(false);
+            NotifyBotsOfTeamOfNewTarget(pBot);
+        }
+    }
+}
+
+//---------------------------- NotifyBotsOfTeamOfNewTarget -------------------------
+//
+//  when a bot is removed from the game by a user all remianing bots
+//  must be notifies so that they can remove any references to that bot from
+//  their memory
+//-----------------------------------------------------------------------------
+void Raven_Game::NotifyBotsOfTeamOfNewTarget(Raven_Bot* pTargetBot)const
+{
+    std::list<Raven_Bot*>::const_iterator curBot = m_Bots.begin();
+    for (curBot; curBot != m_Bots.end(); ++curBot)
+    {
+        if (m_pSelectedBot && (*curBot)!=m_pSelectedBot && (*curBot)->Equipe() == m_pSelectedBot->Equipe()) {
+            Dispatcher->DispatchMsg(SEND_MSG_IMMEDIATELY,
+                SENDER_ID_IRRELEVANT,
+                (*curBot)->ID(),
+                Msg_UserHasDesignatedATarget,
+                pTargetBot);
+        }
+    }
+}
+
+//---------------------------- NotifyBotsOfTeamToRemoveTarget -------------------------
+//
+//  when a bot is removed from the game by a user all remianing bots
+//  must be notifies so that they can remove any references to that bot from
+//  their memory
+//-----------------------------------------------------------------------------
+void Raven_Game::NotifyBotsOfTeamToRemoveTarget()const
+{
+    std::list<Raven_Bot*>::const_iterator curBot = m_Bots.begin();
+    for (curBot; curBot != m_Bots.end(); ++curBot)
+    {
+        if (m_pSelectedBot && (*curBot) != m_pSelectedBot && (*curBot)->Equipe() == m_pSelectedBot->Equipe()) {
+            Dispatcher->DispatchMsg(SEND_MSG_IMMEDIATELY,
+                SENDER_ID_IRRELEVANT,
+                (*curBot)->ID(),
+                Msg_UserHasRemovedTarget,
+                NULL);
+        }
+    }
+}
+
 
 //---------------------- ClickLeftMouseButton ---------------------------------
 //-----------------------------------------------------------------------------
