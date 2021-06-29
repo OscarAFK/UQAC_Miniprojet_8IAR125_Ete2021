@@ -31,7 +31,7 @@ private:
 
   Raven_Bot*       m_pOwner;
   FuzzyModule   m_FuzzyModule;
-
+  double LastDesirabilityScore;
 
   //pointers to the weapons the bot is carrying (a bot may only carry one
   //instance of each weapon)
@@ -79,7 +79,7 @@ public:
   //this method aims the bot's current weapon at the target (if there is a
   //target) and, if aimed correctly, fires a round. (Called each update-step
   //from Raven_Bot::Update)
-  void          TakeAimAndShoot()const;
+  void          TakeAimAndShoot();//const;
 
   //this method determines the most appropriate weapon to use given the current
   //game state. (Called every n update-steps from Raven_Bot::Update)
@@ -112,7 +112,7 @@ public:
   void          RenderCurrentWeapon()const;
   void          RenderDesirabilities()const;
 
-  void getShotDesirability(double distToTarget, double timeTargetHasBeenVisible, double targetVelocity);
+  double getShotDesirability(double distToTarget, double timeTargetHasBeenVisible, double targetVelocity);
 
   void initializeFuzzyModule();
 };
