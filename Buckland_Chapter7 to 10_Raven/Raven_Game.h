@@ -81,6 +81,14 @@ private:
   //their memory
   void NotifyAllBotsOfRemoval(Raven_Bot* pRemovedBot)const;
   
+  //When the player designated a new target, the other bots in the team
+  //will try to attack it
+  void NotifyBotsOfTeamOfNewTarget(Raven_Bot* pTargetBot)const;
+
+  //When the player undesignated a new target, the other bots in the team
+  //will forgot about it
+  void NotifyBotsOfTeamToRemoveTarget()const;
+
 public:
   
   Raven_Game();
@@ -144,6 +152,11 @@ public:
   //The method checks to see if a bot is beneath the cursor. If so, the bot
   //is recorded as beeing in a team
   void        ShiftANDClickRightMouseButton(POINTS p);
+
+  //this method is called when the user clicks the left mouse button while pressing the shift button.
+  //The method checks to see if a bot is beneath the cursor. If so, the bot
+  //is designed has the target for the bots of the team
+  void        ShiftANDClickLeftMouseButton(POINTS p);
 
   //this method is called when the user clicks the left mouse button. If there
   //is a possessed bot, this fires the weapon, else does nothing

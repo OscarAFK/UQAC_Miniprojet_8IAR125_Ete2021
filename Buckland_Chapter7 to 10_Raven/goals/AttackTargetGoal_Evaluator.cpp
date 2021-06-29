@@ -19,8 +19,9 @@ double AttackTargetGoal_Evaluator::CalculateDesirability(Raven_Bot* pBot)
 {
   double Desirability = 0.0;
 
+
   //only do the calculation if there is a target present
-  if (pBot->GetTargetSys()->isTargetPresent()) 
+  if (pBot->GetTargetSys()->isTargetPresent())
   {
      const double Tweaker = 1.0;
 

@@ -29,6 +29,8 @@ private:
   //the current target (this will be null if there is no target assigned)
   Raven_Bot*  m_pCurrentTarget;
 
+  //this is a pointer to the ennemy bot designed by the player
+  Raven_Bot*  m_pBotDesignedByPlayer;
 
 public:
 
@@ -66,6 +68,13 @@ public:
 
   //sets the target pointer to null
   void       ClearTarget(){m_pCurrentTarget=0;}
+
+  //sets the player target pointer
+  void       SetTargetPlayer(Raven_Bot* val) { m_pCurrentTarget = val; }
+
+  //sets the player target pointer
+  void       ClearTargetPlayer() { m_pBotDesignedByPlayer = 0; }
+
 };
 
 
