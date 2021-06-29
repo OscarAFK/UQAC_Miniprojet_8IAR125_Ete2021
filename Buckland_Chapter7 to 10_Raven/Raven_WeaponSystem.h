@@ -13,6 +13,7 @@
 //-----------------------------------------------------------------------------
 #include <map>
 #include "2d/vector2d.h"
+#include "Fuzzy/FuzzyModule.h"
 
 class Raven_Bot;
 class Raven_Weapon;
@@ -29,6 +30,8 @@ private:
 private:
 
   Raven_Bot*       m_pOwner;
+  FuzzyModule   m_FuzzyModule;
+
 
   //pointers to the weapons the bot is carrying (a bot may only carry one
   //instance of each weapon)
@@ -108,6 +111,10 @@ public:
 
   void          RenderCurrentWeapon()const;
   void          RenderDesirabilities()const;
+
+  void getShotDesirability(double distToTarget, double timeTargetHasBeenVisible, double targetVelocity);
+
+  void initializeFuzzyModule();
 };
 
 #endif

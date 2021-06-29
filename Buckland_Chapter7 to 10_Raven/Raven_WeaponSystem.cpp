@@ -9,7 +9,7 @@
 #include "Raven_Game.h"
 #include "Raven_UserOptions.h"
 #include "2D/transformations.h"
-
+#include "fuzzy/FuzzyOperators.h"
 
 
 //------------------------- ctor ----------------------------------------------
@@ -52,11 +52,53 @@ void Raven_WeaponSystem::Initialize()
 
   //set up the container
   m_pCurrentWeapon = new Blaster(m_pOwner);
-
+  
   m_WeaponMap[type_blaster]         = m_pCurrentWeapon;
   m_WeaponMap[type_shotgun]         = 0;
   m_WeaponMap[type_rail_gun]        = 0;
   m_WeaponMap[type_rocket_launcher] = 0;
+
+
+  this->initializeFuzzyModule();
+  //initialiser les règles ici ?
+  //période / temps de vision sur la cible
+  //Distance de la cible
+  //vélocité
+  //mettre les désirable et faire sans doute des plateaux, voir dans les weapon machin pour voir ça.
+}
+
+void Raven_WeaponSystem::initializeFuzzyModule()
+{
+    FuzzyVariable& visionTimeOnTarget = m_FuzzyModule.CreateFLV("visionTimeOnTarget"); //in second ? how to get time
+    FzSet& shortPeriod = visionTimeOnTarget.AddRightShoulderSet("shortPeriod", 0, 0.3, 0.5);
+    FzSet& mediumPeriod = visionTimeOnTarget.AddTriangularSet("mediumPeriod", 0.3, 0.7, 1.2);
+    FzSet& longPeriod = visionTimeOnTarget.AddLeftShoulderSet("longPeriod", 0.8, 1.2, 100);
+
+
+    FuzzyVariable& distToTarget = m_FuzzyModule.CreateFLV("distToTarget");
+    FzSet& Target_Close = distToTarget.AddLeftShoulderSet("Target_Close", 0, 25, 150);
+    FzSet& Target_Medium = distToTarget.AddTriangularSet("Target_Medium", 25, 150, 300);
+    FzSet& Target_Far = distToTarget.AddRightShoulderSet("Target_Far", 150, 300, 1000);
+
+    FuzzyVariable& velocity = m_FuzzyModule.CreateFLV("velocity");
+    FzSet& Target_Slow = distToTarget.AddLeftShoulderSet("Target_Slow", 0, 0.125, 0.375);
+    FzSet& Target_MediumSpeed = distToTarget.AddTriangularSet("Target_MediumSpeed", 0.25, 0.5, 0.75);
+    FzSet& Target_Fast = distToTarget.AddRightShoulderSet("Target_Fast", 0.5, 0.75, 1.0);
+
+    FuzzyVariable& desirability = m_FuzzyModule.CreateFLV("desirability");
+    FzSet& VeryDesirable = desirability.AddRightShoulderSet("VeryDesirable", 50, 75, 100);
+    FzSet& Desirable = desirability.AddTriangularSet("Desirable", 25, 50, 75);
+    FzSet& Undesirable = desirability.AddLeftShoulderSet("Undesirable", 0, 25, 50);
+
+
+}
+
+
+void Raven_WeaponSystem::getShotDesirability(double distToTarget, double timeTargetHasBeenVisible,double targetVelocity)
+{
+    //ici qu'il faut se servir des règles, fuzzifier toutes les variables demandé par le prof
+        //bien penser à defuzifier la valeur après.
+
 }
 
 //-------------------------------- SelectWeapon -------------------------------
@@ -70,6 +112,8 @@ void Raven_WeaponSystem::SelectWeapon()
   {
     //calculate the distance to the target
     double DistToTarget = Vec2DDistance(m_pOwner->Pos(), m_pOwner->GetTargetSys()->GetTarget()->Pos());
+    double truc = m_pOwner->GetTargetSys()->GetTarget()->Speed();
+    double truc3 = m_pOwner->GetTargetSys()->GetTimeTargetHasBeenVisible();
 
     //for each weapon in the inventory calculate its desirability given the 
     //current situation. The most desirable weapon is selected
@@ -175,17 +219,27 @@ void Raven_WeaponSystem::ChangeWeapon(unsigned int type)
 //-----------------------------------------------------------------------------
 void Raven_WeaponSystem::TakeAimAndShoot()const
 {
+
+
+
+
+
   //aim the weapon only if the current target is shootable or if it has only
   //very recently gone out of view (this latter condition is to ensure the 
   //weapon is aimed at the target even if it temporarily dodges behind a wall
   //or other cover)
+
+
+    // faire en sorte de récupérer toutes les données/variables à fuzzifier.
+  //faire un get desirability sur la visée et l'utiliser pour savoir si c'est cool de tirer et après ça ne change pas
+    //if get desirability is desirable on take le shot.
   if (m_pOwner->GetTargetSys()->isTargetShootable() ||
       (m_pOwner->GetTargetSys()->GetTimeTargetHasBeenOutOfView() < 
        m_dAimPersistance) )
   {
     //the position the weapon will be aimed at
     Vector2D AimingPos = m_pOwner->GetTargetBot()->Pos();
-    
+
     //if the current weapon is not an instant hit type gun the target position
     //must be adjusted to take into account the predicted movement of the 
     //target
