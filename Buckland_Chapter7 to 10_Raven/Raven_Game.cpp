@@ -155,7 +155,7 @@ void Raven_Game::Update()
 		  if (!m_pSelectedBot->GetWeaponSys()->isInstantHit()) {
 			  AimingPos = m_pSelectedBot->GetWeaponSys()->PredictFuturePositionOfTarget();
 		  }
-		  inputs.push_back(m_pSelectedBot->RotateFacingTowardPosition(m_pSelectedBot->GetTargetBot()->Pos()) ? 1 : 0);
+		  inputs.push_back(m_pSelectedBot->isFacing(m_pSelectedBot->GetTargetBot()->Pos()) ? 1 : 0);
 		  inputs.push_back(m_pSelectedBot->GetTargetSys()->GetTimeTargetHasBeenVisible());
 		  inputs.push_back(m_pSelectedBot->hasLOSto(AimingPos) ? 1 : 0);
 		  inputs.push_back(AimingPos.x);
@@ -446,7 +446,7 @@ void Raven_Game::ExorciseAnyPossessedBot()
 
 void Raven_Game::AddLearningBot(unsigned int NumBotsToAdd)
 {
-	string learningSaveFile = "test";
+	string learningSaveFile = "test.txt";
 	while (NumBotsToAdd--)
 	{
 		//create a bot. (its position is irrelevant at this point because it will
@@ -471,8 +471,10 @@ void Raven_Game::AddLearningBot(unsigned int NumBotsToAdd)
 
 void Raven_Game::RecordHumanPlayer()
 {
-	if (m_pSelectedBot)
+	if (m_pSelectedBot) {
 		m_bRecordHuman = !m_bRecordHuman;
+		m_pSelectedBot->IncreaseHealth(200);
+	}
 }
 
 void Raven_Game::TrainNeurNet()

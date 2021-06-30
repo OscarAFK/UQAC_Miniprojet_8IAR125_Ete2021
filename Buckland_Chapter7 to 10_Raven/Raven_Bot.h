@@ -163,6 +163,7 @@ public:
   void          IncrementScore(){++m_iScore;}
 
   Vector2D      Facing()const{return m_vFacing;}
+  bool			isFacing(Vector2D direction) { return Facing() == direction; };
   double        FieldOfView()const{return m_dFieldOfView;}
 
   bool          isPossessed()const{return m_bPossessed;}
