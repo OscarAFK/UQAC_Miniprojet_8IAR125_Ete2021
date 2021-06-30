@@ -77,6 +77,9 @@
     <Filter Include="Common">
       <UniqueIdentifier>{f3f5ab42-49d8-4348-aa63-66655abd9be1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="MLP">
+      <UniqueIdentifier>{c98a8427-10a0-4a44-ba4e-97ea3c9a5f21}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -267,6 +270,21 @@
     </ClCompile>
     <ClCompile Include="..\Common\misc\WindowUtils.cpp">
       <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="goals\Goal_Panic.cpp">
+      <Filter>AI\goals\composite</Filter>
+    </ClCompile>
+    <ClCompile Include="goals\PanicGoal_Evaluator.cpp">
+      <Filter>AI\goals\goal evaluation</Filter>
+    </ClCompile>
+    <ClCompile Include="MLP\CData.cpp">
+      <Filter>MLP</Filter>
+    </ClCompile>
+    <ClCompile Include="MLP\CNeuralNet.cpp">
+      <Filter>MLP</Filter>
+    </ClCompile>
+    <ClCompile Include="Raven_Learning.cpp">
+      <Filter>Game</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -605,6 +623,21 @@
     </ClInclude>
     <ClInclude Include="..\Common\misc\WindowUtils.h">
       <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="goals\Goal_Panic.h">
+      <Filter>AI\goals\composite</Filter>
+    </ClInclude>
+    <ClInclude Include="goals\PanicGoal_Evaluator.h">
+      <Filter>AI\goals\goal evaluation</Filter>
+    </ClInclude>
+    <ClInclude Include="MLP\CData.h">
+      <Filter>MLP</Filter>
+    </ClInclude>
+    <ClInclude Include="MLP\CNeuralNet.h">
+      <Filter>MLP</Filter>
+    </ClInclude>
+    <ClInclude Include="Raven_Learning.h">
+      <Filter>Game</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

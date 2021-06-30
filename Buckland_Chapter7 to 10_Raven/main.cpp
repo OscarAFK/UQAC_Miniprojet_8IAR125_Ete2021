@@ -132,6 +132,30 @@ LRESULT CALLBACK WindowProc (HWND   hwnd,
 
            break;
 
+		 case 'R':
+
+			 g_pRaven->RecordHumanPlayer();
+
+			 break;
+
+		 case 'L':
+
+			 g_pRaven->TrainNeurNet();
+
+			 break;
+			 
+		 case 'T':
+
+			 g_pRaven->AddLearningBot(1);
+
+			 break;
+
+		 case 'B':
+
+			 g_pRaven->Breakpoint();
+
+			 break;
+
          case '1':
 
            g_pRaven->ChangeWeaponOfPossessedBot(type_blaster);

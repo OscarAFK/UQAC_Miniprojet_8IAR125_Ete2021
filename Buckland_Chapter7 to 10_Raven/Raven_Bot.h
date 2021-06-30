@@ -16,6 +16,7 @@
 #include "game/MovingEntity.h"
 #include "misc/utils.h"
 #include "Raven_TargetingSystem.h"
+#include "Raven_WeaponSystem.h"
 
 
 class Raven_PathPlanner;
@@ -135,6 +136,9 @@ public:
   Raven_Bot(Raven_Game* world, Vector2D pos, int equipe);
   virtual ~Raven_Bot();
 
+  //always return true, simplify implementation for child class
+  bool doesShoot() { return true; };
+
   //the usual suspects
   void         Render();
   void         Update();
@@ -159,6 +163,7 @@ public:
   void          IncrementScore(){++m_iScore;}
 
   Vector2D      Facing()const{return m_vFacing;}
+  bool			isFacing(Vector2D direction) { return Facing() == direction; };
   double        FieldOfView()const{return m_dFieldOfView;}
 
   bool          isPossessed()const{return m_bPossessed;}

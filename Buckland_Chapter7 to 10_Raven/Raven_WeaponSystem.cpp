@@ -60,11 +60,11 @@ void Raven_WeaponSystem::Initialize()
 
 
   this->initializeFuzzyModule();
-  //initialiser les règles ici ?
-  //période / temps de vision sur la cible
+  //initialiser les rï¿½gles ici ?
+  //pï¿½riode / temps de vision sur la cible
   //Distance de la cible
-  //vélocité
-  //mettre les désirable et faire sans doute des plateaux, voir dans les weapon machin pour voir ça.
+  //vï¿½locitï¿½
+  //mettre les dï¿½sirable et faire sans doute des plateaux, voir dans les weapon machin pour voir ï¿½a.
 }
 
 void Raven_WeaponSystem::initializeFuzzyModule()
@@ -148,8 +148,8 @@ void Raven_WeaponSystem::initializeFuzzyModule()
 
 double Raven_WeaponSystem::getShotDesirability(double distToTarget, double timeTargetHasBeenVisible,double targetVelocity)
 {
-    //ici qu'il faut se servir des règles, fuzzifier toutes les variables demandé par le prof
-        //bien penser à defuzifier la valeur après.
+    //ici qu'il faut se servir des rï¿½gles, fuzzifier toutes les variables demandï¿½ par le prof
+        //bien penser ï¿½ defuzifier la valeur aprï¿½s.
     m_FuzzyModule.Fuzzify("distToTarget", distToTarget);
     m_FuzzyModule.Fuzzify("velocity", targetVelocity);
     m_FuzzyModule.Fuzzify("visionTimeOnTarget", timeTargetHasBeenVisible);
@@ -281,8 +281,8 @@ void Raven_WeaponSystem::TakeAimAndShoot()//const
         double timeTargetHasBeenSeen = m_pOwner->GetTargetSys()->GetTimeTargetHasBeenVisible();
         double score = getShotDesirability(DistToTarget, timeTargetHasBeenSeen, targetSpeed);
 
-          // faire en sorte de récupérer toutes les données/variables à fuzzifier.
-        //faire un get desirability sur la visée et l'utiliser pour savoir si c'est cool de tirer et après ça ne change pas
+          // faire en sorte de rï¿½cupï¿½rer toutes les donnï¿½es/variables ï¿½ fuzzifier.
+        //faire un get desirability sur la visï¿½e et l'utiliser pour savoir si c'est cool de tirer et aprï¿½s ï¿½a ne change pas
           //if get desirability is desirable on take le shot.
         if (score>40) //40 because it's near the peak for desirable (50)
         {
@@ -334,7 +334,16 @@ void Raven_WeaponSystem::TakeAimAndShoot()//const
         {
             m_pOwner->RotateFacingTowardPosition(m_pOwner->Pos() + m_pOwner->Heading());
         }
+  //aim the weapon only if the current target is shootable or if it has only
+  //very recently gone out of view (this latter condition is to ensure the 
+  //weapon is aimed at the target even if it temporarily dodges behind a wall
+  //or other cover)
     }
+}
+
+bool Raven_WeaponSystem::isInstantHit() const {
+	return (GetCurrentWeapon()->GetType() == type_rocket_launcher ||
+		GetCurrentWeapon()->GetType() == type_blaster);
 }
 
 //---------------------------- AddNoiseToAim ----------------------------------
