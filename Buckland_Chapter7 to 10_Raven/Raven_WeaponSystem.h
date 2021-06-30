@@ -13,6 +13,7 @@
 //-----------------------------------------------------------------------------
 #include <map>
 #include "2d/vector2d.h"
+#include "armory/Raven_Weapon.h"
 
 class Raven_Bot;
 class Raven_Weapon;
@@ -53,15 +54,15 @@ private:
   //even if the target disappears from view.
   double            m_dAimPersistance;
 
-  //predicts where the target will be by the time it takes the current weapon's
-  //projectile type to reach it. Used by TakeAimAndShoot
-  Vector2D    PredictFuturePositionOfTarget()const;
 
   //adds a random deviation to the firing angle not greater than m_dAimAccuracy 
   //rads
   void        AddNoiseToAim(Vector2D& AimingPos)const;
 
 public:
+  //predicts where the target will be by the time it takes the current weapon's
+  //projectile type to reach it. Used by TakeAimAndShoot
+  Vector2D    PredictFuturePositionOfTarget()const;
 
   Raven_WeaponSystem(Raven_Bot* owner,
                      double      ReactionTime,
@@ -95,7 +96,10 @@ public:
   void          ShootAt(Vector2D pos)const;
 
   //returns a pointer to the current weapon
-  Raven_Weapon* GetCurrentWeapon()const{return m_pCurrentWeapon;} 
+  Raven_Weapon* GetCurrentWeapon()const{return m_pCurrentWeapon;}
+
+  //returns wether the current weapon is instant hit or not
+  bool isInstantHit() const;
 
   //returns a pointer to the specified weapon type (if in inventory, null if 
   //not)

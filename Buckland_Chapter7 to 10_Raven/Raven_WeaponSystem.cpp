@@ -189,8 +189,7 @@ void Raven_WeaponSystem::TakeAimAndShoot()const
     //if the current weapon is not an instant hit type gun the target position
     //must be adjusted to take into account the predicted movement of the 
     //target
-    if (GetCurrentWeapon()->GetType() == type_rocket_launcher ||
-        GetCurrentWeapon()->GetType() == type_blaster)
+    if (!isInstantHit())
     {
       AimingPos = PredictFuturePositionOfTarget();
 
@@ -203,8 +202,9 @@ void Raven_WeaponSystem::TakeAimAndShoot()const
            m_pOwner->hasLOSto(AimingPos) )
       {
         AddNoiseToAim(AimingPos);
-
-        GetCurrentWeapon()->ShootAt(AimingPos);
+		if (m_pOwner->doesShoot()) {
+			GetCurrentWeapon()->ShootAt(AimingPos);
+		}
       }
     }
 
@@ -215,11 +215,14 @@ void Raven_WeaponSystem::TakeAimAndShoot()const
       //longer than the bot's reaction time, shoot the weapon
       if ( m_pOwner->RotateFacingTowardPosition(AimingPos) &&
            (m_pOwner->GetTargetSys()->GetTimeTargetHasBeenVisible() >
-            m_dReactionTime) )
+            m_dReactionTime) &&
+		  m_pOwner->hasLOSto(AimingPos))
       {
         AddNoiseToAim(AimingPos);
         
-        GetCurrentWeapon()->ShootAt(AimingPos);
+		if (m_pOwner->doesShoot()) {
+			GetCurrentWeapon()->ShootAt(AimingPos);
+		}
       }
     }
 
@@ -231,6 +234,11 @@ void Raven_WeaponSystem::TakeAimAndShoot()const
   {
     m_pOwner->RotateFacingTowardPosition(m_pOwner->Pos()+ m_pOwner->Heading());
   }
+}
+
+bool Raven_WeaponSystem::isInstantHit() const {
+	return (GetCurrentWeapon()->GetType() == type_rocket_launcher ||
+		GetCurrentWeapon()->GetType() == type_blaster);
 }
 
 //---------------------------- AddNoiseToAim ----------------------------------

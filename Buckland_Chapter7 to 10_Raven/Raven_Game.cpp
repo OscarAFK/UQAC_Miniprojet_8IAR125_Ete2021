@@ -26,6 +26,9 @@
 #include "goals/Goal_Think.h"
 #include "goals/Raven_Goal_Types.h"
 
+#include "../Buckland_Chapter7 to 10_Raven/MLP/CData.h"
+#include "../Buckland_Chapter7 to 10_Raven/MLP/CNeuralNet.h"
+
 //uncomment to write object creation/deletion to debug console
 //#define  LOG_CREATIONAL_STUFF
 
@@ -35,9 +38,11 @@
 Raven_Game::Raven_Game():m_pSelectedBot(NULL),
                          m_bPaused(false),
                          m_bRemoveABot(false),
+						 m_bRecordHuman(false),
                          m_pMap(NULL),
                          m_pPathManager(NULL),
-                         m_pGraveMarkers(NULL)
+                         m_pGraveMarkers(NULL),
+						 humanData(7, 1)
 {
   //load in the default map
   LoadMap(script->GetString("StartMap"));
@@ -139,6 +144,28 @@ void Raven_Game::Update()
 
       curW = m_Projectiles.erase(curW);
     }   
+  }
+
+  if (m_bRecordHuman)
+  {
+	  if (m_pSelectedBot && m_pSelectedBot->isPossessed())
+	  {
+		  vector<double> inputs;
+		  Vector2D AimingPos = m_pSelectedBot->GetTargetBot()->Pos();
+		  if (!m_pSelectedBot->GetWeaponSys()->isInstantHit()) {
+			  AimingPos = m_pSelectedBot->GetWeaponSys()->PredictFuturePositionOfTarget();
+		  }
+		  inputs.push_back(m_pSelectedBot->RotateFacingTowardPosition(m_pSelectedBot->GetTargetBot()->Pos()) ? 1 : 0);
+		  inputs.push_back(m_pSelectedBot->GetTargetSys()->GetTimeTargetHasBeenVisible());
+		  inputs.push_back(m_pSelectedBot->hasLOSto(AimingPos) ? 1 : 0);
+		  inputs.push_back(AimingPos.x);
+		  inputs.push_back(AimingPos.y);
+		  inputs.push_back(m_pSelectedBot->Pos().x);
+		  inputs.push_back(m_pSelectedBot->Pos().y);
+		  vector<double> outputs;
+		  outputs.push_back(0);
+		  humanData.AddData(inputs, outputs);
+	  }
   }
   
   //update the bots
@@ -331,6 +358,11 @@ void Raven_Game::AddRailGunSlug(Raven_Bot* shooter, Vector2D target)
 #endif
 }
 
+void Raven_Game::Breakpoint() {
+	int a = 10;
+	return;
+}
+
 //------------------------- AddShotGunPellet -----------------------------------
 void Raven_Game::AddShotGunPellet(Raven_Bot* shooter, Vector2D target)
 {
@@ -410,6 +442,57 @@ bool Raven_Game::LoadMap(const std::string& filename)
 void Raven_Game::ExorciseAnyPossessedBot()
 {
   if (m_pSelectedBot) m_pSelectedBot->Exorcise();
+}
+
+void Raven_Game::AddLearningBot(unsigned int NumBotsToAdd)
+{
+	string learningSaveFile = "test";
+	while (NumBotsToAdd--)
+	{
+		//create a bot. (its position is irrelevant at this point because it will
+		//not be rendered until it is spawned)
+		Raven_Learning* rb = new Raven_Learning(this, Vector2D(), 0, learningSaveFile);
+
+		//switch the default steering behaviors on
+		rb->GetSteering()->WallAvoidanceOn();
+		rb->GetSteering()->SeparationOn();
+
+		m_Bots.push_back(rb);
+
+		//register the bot with the entity manager
+		EntityMgr->RegisterEntity(rb);
+
+
+#ifdef LOG_CREATIONAL_STUFF
+		debug_con << "Adding bot with ID " << ttos(rb->ID()) << "";
+#endif
+	}
+}
+
+void Raven_Game::RecordHumanPlayer()
+{
+	if (m_pSelectedBot)
+		m_bRecordHuman = !m_bRecordHuman;
+}
+
+void Raven_Game::TrainNeurNet()
+{
+	m_bPaused = !m_bPaused;
+	CNeuralNet myNet(7, 1, 7, 0.75);
+	if (myNet.Train(&humanData)) {
+		try
+		{
+			myNet.SaveMLPNetwork("test");
+		}
+		catch (const std::exception&)
+		{
+			cout << "Problème lors de la sauvegarde" << endl;
+		}
+	}
+	else {
+		cout << "Unable to train network" << endl;
+	}
+	m_bPaused = !m_bPaused;
 }
 
 
@@ -575,9 +658,24 @@ void Raven_Game::NotifyBotsOfTeamToRemoveTarget()const
 //-----------------------------------------------------------------------------
 void Raven_Game::ClickLeftMouseButton(POINTS p)
 {
-  if (m_pSelectedBot && m_pSelectedBot->isPossessed())
-  {
-    m_pSelectedBot->FireWeapon(POINTStoVector(p));
+	if (m_pSelectedBot && m_pSelectedBot->isPossessed())
+	{
+		m_pSelectedBot->FireWeapon(POINTStoVector(p));
+		vector<double> inputs;
+		Vector2D AimingPos = m_pSelectedBot->GetTargetBot()->Pos();
+		if (!m_pSelectedBot->GetWeaponSys()->isInstantHit()) {
+			AimingPos = m_pSelectedBot->GetWeaponSys()->PredictFuturePositionOfTarget();
+		}
+		inputs.push_back(m_pSelectedBot->RotateFacingTowardPosition(m_pSelectedBot->GetTargetBot()->Pos()) ? 1 : 0);
+		inputs.push_back(m_pSelectedBot->GetTargetSys()->GetTimeTargetHasBeenVisible());
+		inputs.push_back(m_pSelectedBot->hasLOSto(AimingPos) ? 1 : 0);
+		inputs.push_back(AimingPos.x);
+		inputs.push_back(AimingPos.y);
+		inputs.push_back(m_pSelectedBot->Pos().x);
+		inputs.push_back(m_pSelectedBot->Pos().y);
+		vector<double> outputs;
+		outputs.push_back(1);
+	humanData.AddData(inputs, outputs);
   }
 }
 
@@ -591,7 +689,7 @@ void Raven_Game::GetPlayerInput()const
   if (m_pSelectedBot && m_pSelectedBot->isPossessed())
   {
       m_pSelectedBot->RotateFacingTowardPosition(GetClientCursorPosition());
-   }
+  }
 }
 
 

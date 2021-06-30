@@ -20,7 +20,7 @@
 
 
 
-class  Raven_Bot;
+//class  Raven_Bot;
 
 class Raven_Weapon
 {
@@ -131,45 +131,6 @@ public:
   unsigned int  GetType()const{return m_iType;}
   double         GetIdealRange()const{return m_dIdealRange;}
 };
-
-
-///////////////////////////////////////////////////////////////////////////////
-//------------------------ ReadyForNextShot -----------------------------------
-//
-//  returns true if the weapon is ready to be discharged
-//-----------------------------------------------------------------------------
-inline bool Raven_Weapon::isReadyForNextShot()
-{
-  if (Clock->GetCurrentTime() > m_dTimeNextAvailable)
-  {
-    return true;
-  }
-
-  return false;
-}
-
-//-----------------------------------------------------------------------------
-inline void Raven_Weapon::UpdateTimeWeaponIsNextAvailable()
-{
-  m_dTimeNextAvailable = Clock->GetCurrentTime() + 1.0/m_dRateOfFire;
-}
-
-
-//-----------------------------------------------------------------------------
-inline bool Raven_Weapon::AimAt(Vector2D target)const
-{
-  return m_pOwner->RotateFacingTowardPosition(target);
-}
-
-//-----------------------------------------------------------------------------
-inline void Raven_Weapon::IncrementRounds(int num)
-{
-  m_iNumRoundsLeft+=num;
-  Clamp(m_iNumRoundsLeft, 0, m_iMaxRoundsCarried);
-} 
-
-
-
 
 
 #endif

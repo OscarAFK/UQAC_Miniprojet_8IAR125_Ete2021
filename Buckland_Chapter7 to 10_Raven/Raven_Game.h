@@ -24,6 +24,7 @@
 #include "misc/utils.h"
 #include "game/EntityFunctionTemplates.h"
 #include "Raven_Bot.h"
+#include "Raven_Learning.h"
 #include "navigation/pathmanager.h"
 
 
@@ -38,153 +39,168 @@ class Raven_Game
 {
 private:
 
-  //the current game map
-  Raven_Map*                       m_pMap;
- 
-  //a list of all the bots that are inhabiting the map
-  std::list<Raven_Bot*>            m_Bots;
+	//the current game map
+	Raven_Map*                       m_pMap;
 
-  //the user may select a bot to control manually. This is a pointer to that
-  //bot
-  Raven_Bot*                       m_pSelectedBot;
-  
-  //this list contains any active projectiles (slugs, rockets,
-  //shotgun pellets, etc)
-  std::list<Raven_Projectile*>     m_Projectiles;
+	//a list of all the bots that are inhabiting the map
+	std::list<Raven_Bot*>            m_Bots;
 
-  //this class manages all the path planning requests
-  PathManager<Raven_PathPlanner>*  m_pPathManager;
+	//the user may select a bot to control manually. This is a pointer to that
+	//bot
+	Raven_Bot*                       m_pSelectedBot;
+
+	//this list contains any active projectiles (slugs, rockets,
+	//shotgun pellets, etc)
+	std::list<Raven_Projectile*>     m_Projectiles;
+
+	//this class manages all the path planning requests
+	PathManager<Raven_PathPlanner>*  m_pPathManager;
 
 
-  //if true the game will be paused
-  bool                             m_bPaused;
+	//if true the game will be paused
+	bool                             m_bPaused;
 
-  //if true a bot is removed from the game
-  bool                             m_bRemoveABot;
+	//if true a bot is removed from the game
+	bool                             m_bRemoveABot;
 
-  //when a bot is killed a "grave" is displayed for a few seconds. This
-  //class manages the graves
-  GraveMarkers*                    m_pGraveMarkers;
+	//if true record human data
+	bool m_bRecordHuman;
 
-  //this iterates through each trigger, testing each one against each bot
-  void  UpdateTriggers();
+	//when a bot is killed a "grave" is displayed for a few seconds. This
+	//class manages the graves
+	GraveMarkers*                    m_pGraveMarkers;
 
-  //deletes all entities, empties all containers and creates a new navgraph 
-  void  Clear();
+	//data for the neural networks
+	CData humanData;
 
-  //attempts to position a spawning bot at a free spawn point. returns false
-  //if unsuccessful 
-  bool AttemptToAddBot(Raven_Bot* pBot);
+	//this iterates through each trigger, testing each one against each bot
+	void  UpdateTriggers();
 
-  //when a bot is removed from the game by a user all remaining bots
-  //must be notified so that they can remove any references to that bot from
-  //their memory
-  void NotifyAllBotsOfRemoval(Raven_Bot* pRemovedBot)const;
-  
-  //When the player designated a new target, the other bots in the team
-  //will try to attack it
-  void NotifyBotsOfTeamOfNewTarget(Raven_Bot* pTargetBot)const;
+	//deletes all entities, empties all containers and creates a new navgraph 
+	void  Clear();
 
-  //When the player undesignated a new target, the other bots in the team
-  //will forgot about it
-  void NotifyBotsOfTeamToRemoveTarget()const;
+	//attempts to position a spawning bot at a free spawn point. returns false
+	//if unsuccessful 
+	bool AttemptToAddBot(Raven_Bot* pBot);
+
+	//when a bot is removed from the game by a user all remaining bots
+	//must be notified so that they can remove any references to that bot from
+	//their memory
+	void NotifyAllBotsOfRemoval(Raven_Bot* pRemovedBot)const;
+
+	//When the player designated a new target, the other bots in the team
+	//will try to attack it
+	void NotifyBotsOfTeamOfNewTarget(Raven_Bot* pTargetBot)const;
+
+	//When the player undesignated a new target, the other bots in the team
+	//will forgot about it
+	void NotifyBotsOfTeamToRemoveTarget()const;
 
 public:
-  
-  Raven_Game();
-  ~Raven_Game();
 
-  //the usual suspects
-  void Render();
-  void Update();
+	Raven_Game();
+	~Raven_Game();
 
-  //loads an environment from a file
-  bool LoadMap(const std::string& FileName); 
+	//the usual suspects
+	void Render();
+	void Update();
 
-  void AddBots(unsigned int NumBotsToAdd);
-  void AddRocket(Raven_Bot* shooter, Vector2D target);
-  void AddRailGunSlug(Raven_Bot* shooter, Vector2D target);
-  void AddShotGunPellet(Raven_Bot* shooter, Vector2D target);
-  void AddBolt(Raven_Bot* shooter, Vector2D target);
+	void Breakpoint();
 
-  //removes the last bot to be added
-  void RemoveBot();
+	//loads an environment from a file
+	bool LoadMap(const std::string& FileName);
 
-  //returns true if a bot of size BoundingRadius cannot move from A to B
-  //without bumping into world geometry
-  bool isPathObstructed(Vector2D A, Vector2D B, double BoundingRadius = 0)const;
+	void AddBots(unsigned int NumBotsToAdd);
+	void AddRocket(Raven_Bot* shooter, Vector2D target);
+	void AddRailGunSlug(Raven_Bot* shooter, Vector2D target);
+	void AddShotGunPellet(Raven_Bot* shooter, Vector2D target);
+	void AddBolt(Raven_Bot* shooter, Vector2D target);
 
-  //returns a vector of pointers to bots in the FOV of the given bot
-  std::vector<Raven_Bot*> GetAllBotsInFOV(const Raven_Bot* pBot)const;
+	//removes the last bot to be added
+	void RemoveBot();
 
-  //returns true if the second bot is unobstructed by walls and in the field
-  //of view of the first.
-  bool        isSecondVisibleToFirst(const Raven_Bot* pFirst,
-                                     const Raven_Bot* pSecond)const;
+	//returns true if a bot of size BoundingRadius cannot move from A to B
+	//without bumping into world geometry
+	bool isPathObstructed(Vector2D A, Vector2D B, double BoundingRadius = 0)const;
 
-  //returns true if the ray between A and B is unobstructed.
-  bool        isLOSOkay(Vector2D A, Vector2D B)const;
+	//returns a vector of pointers to bots in the FOV of the given bot
+	std::vector<Raven_Bot*> GetAllBotsInFOV(const Raven_Bot* pBot)const;
 
-  //starting from the given origin and moving in the direction Heading this
-  //method returns the distance to the closest wall
-  double       GetDistanceToClosestWall(Vector2D Origin, Vector2D Heading)const;
+	//returns true if the second bot is unobstructed by walls and in the field
+	//of view of the first.
+	bool        isSecondVisibleToFirst(const Raven_Bot* pFirst,
+		const Raven_Bot* pSecond)const;
 
-  
-  //returns the position of the closest visible switch that triggers the
-  //door of the specified ID
-  Vector2D GetPosOfClosestSwitch(Vector2D botPos, unsigned int doorID)const;
+	//returns true if the ray between A and B is unobstructed.
+	bool        isLOSOkay(Vector2D A, Vector2D B)const;
 
-  //given a position on the map this method returns the bot found with its
-  //bounding radius of that position.If there is no bot at the position the
-  //method returns NULL
-  Raven_Bot*  GetBotAtPosition(Vector2D CursorPos)const;
+	//starting from the given origin and moving in the direction Heading this
+	//method returns the distance to the closest wall
+	double       GetDistanceToClosestWall(Vector2D Origin, Vector2D Heading)const;
 
 
-  void        TogglePause(){m_bPaused = !m_bPaused;}
-  
-  //this method is called when the user clicks the right mouse button.
-  //The method checks to see if a bot is beneath the cursor. If so, the bot
-  //is recorded as selected.If the cursor is not over a bot then any selected
-  // bot/s will attempt to move to that position.
-  void        ClickRightMouseButton(POINTS p);
+	//returns the position of the closest visible switch that triggers the
+	//door of the specified ID
+	Vector2D GetPosOfClosestSwitch(Vector2D botPos, unsigned int doorID)const;
 
-  //this method is called when the user clicks the right mouse button while pressing the shift button.
-  //The method checks to see if a bot is beneath the cursor. If so, the bot
-  //is recorded as beeing in a team
-  void        ShiftANDClickRightMouseButton(POINTS p);
+	//given a position on the map this method returns the bot found with its
+	//bounding radius of that position.If there is no bot at the position the
+	//method returns NULL
+	Raven_Bot*  GetBotAtPosition(Vector2D CursorPos)const;
 
-  //this method is called when the user clicks the left mouse button while pressing the shift button.
-  //The method checks to see if a bot is beneath the cursor. If so, the bot
-  //is designed has the target for the bots of the team
-  void        ShiftANDClickLeftMouseButton(POINTS p);
 
-  //this method is called when the user clicks the left mouse button. If there
-  //is a possessed bot, this fires the weapon, else does nothing
-  void        ClickLeftMouseButton(POINTS p);
+	void        TogglePause() { m_bPaused = !m_bPaused; }
 
-  //when called will release any possessed bot from user control
-  void        ExorciseAnyPossessedBot();
- 
-  //if a bot is possessed the keyboard is polled for user input and any 
-  //relevant bot methods are called appropriately
-  void        GetPlayerInput()const;
-  Raven_Bot*  PossessedBot()const{return m_pSelectedBot;}
-  void        ChangeWeaponOfPossessedBot(unsigned int weapon)const;
+	//this method is called when the user clicks the right mouse button.
+	//The method checks to see if a bot is beneath the cursor. If so, the bot
+	//is recorded as selected.If the cursor is not over a bot then any selected
+	// bot/s will attempt to move to that position.
+	void        ClickRightMouseButton(POINTS p);
 
-  
-  const Raven_Map* const                   GetMap()const{return m_pMap;}
-  Raven_Map* const                         GetMap(){return m_pMap;}
-  const std::list<Raven_Bot*>&             GetAllBots()const{return m_Bots;}
-  PathManager<Raven_PathPlanner>* const    GetPathManager(){return m_pPathManager;}
-  int                                      GetNumBots()const{return m_Bots.size();}
+	//this method is called when the user clicks the right mouse button while pressing the shift button.
+	//The method checks to see if a bot is beneath the cursor. If so, the bot
+	//is recorded as beeing in a team
+	void        ShiftANDClickRightMouseButton(POINTS p);
 
-  
-  void  TagRaven_BotsWithinViewRange(BaseGameEntity* pRaven_Bot, double range)
-              {TagNeighbors(pRaven_Bot, m_Bots, range);}  
+	//this method is called when the user clicks the left mouse button while pressing the shift button.
+	//The method checks to see if a bot is beneath the cursor. If so, the bot
+	//is designed has the target for the bots of the team
+	void        ShiftANDClickLeftMouseButton(POINTS p);
+
+	//this method is called when the user clicks the left mouse button. If there
+	//is a possessed bot, this fires the weapon, else does nothing
+	void        ClickLeftMouseButton(POINTS p);
+
+	//when called will release any possessed bot from user control
+	void        ExorciseAnyPossessedBot();
+
+	//when called will spawn a learning agent
+	void AddLearningBot(unsigned int NumBotsToAdd);
+
+	//when called will save user action to train learning agent's neural network
+	void RecordHumanPlayer();
+
+	void TrainNeurNet();
+
+	//if a bot is possessed the keyboard is polled for user input and any 
+	//relevant bot methods are called appropriately
+	void        GetPlayerInput()const;
+	Raven_Bot*  PossessedBot()const { return m_pSelectedBot; }
+	void        ChangeWeaponOfPossessedBot(unsigned int weapon)const;
+
+
+	const Raven_Map* const                   GetMap()const { return m_pMap; }
+	Raven_Map* const                         GetMap() { return m_pMap; }
+	const std::list<Raven_Bot*>&             GetAllBots()const { return m_Bots; }
+	PathManager<Raven_PathPlanner>* const    GetPathManager() { return m_pPathManager; }
+	int                                      GetNumBots()const { return m_Bots.size(); }
+
+
+	void  TagRaven_BotsWithinViewRange(BaseGameEntity* pRaven_Bot, double range)
+	{
+		TagNeighbors(pRaven_Bot, m_Bots, range);
+	}
 };
-
-
-
 
 
 #endif
