@@ -9,7 +9,7 @@
 #include "Raven_Game.h"
 #include "Raven_UserOptions.h"
 #include "2D/transformations.h"
-
+#include "fuzzy/FuzzyOperators.h"
 
 
 //------------------------- ctor ----------------------------------------------
@@ -52,11 +52,109 @@ void Raven_WeaponSystem::Initialize()
 
   //set up the container
   m_pCurrentWeapon = new Blaster(m_pOwner);
-
+  
   m_WeaponMap[type_blaster]         = m_pCurrentWeapon;
   m_WeaponMap[type_shotgun]         = 0;
   m_WeaponMap[type_rail_gun]        = 0;
   m_WeaponMap[type_rocket_launcher] = 0;
+
+
+  this->initializeFuzzyModule();
+  //initialiser les r�gles ici ?
+  //p�riode / temps de vision sur la cible
+  //Distance de la cible
+  //v�locit�
+  //mettre les d�sirable et faire sans doute des plateaux, voir dans les weapon machin pour voir �a.
+}
+
+void Raven_WeaponSystem::initializeFuzzyModule()
+{
+    FuzzyVariable& visionTimeOnTarget = m_FuzzyModule.CreateFLV("visionTimeOnTarget"); //in second ? how to get time
+    FzSet& shortPeriod = visionTimeOnTarget.AddRightShoulderSet("shortPeriod", 0, 0.3, 0.5);
+    FzSet& mediumPeriod = visionTimeOnTarget.AddTriangularSet("mediumPeriod", 0.3, 0.7, 1.2);
+    FzSet& longPeriod = visionTimeOnTarget.AddLeftShoulderSet("longPeriod", 0.8, 1.2, 100);
+
+
+    FuzzyVariable& distToTarget = m_FuzzyModule.CreateFLV("distToTarget");
+    FzSet& Target_Close = distToTarget.AddLeftShoulderSet("Target_Close", 0, 25, 150);
+    FzSet& Target_Medium = distToTarget.AddTriangularSet("Target_Medium", 25, 150, 300);
+    FzSet& Target_Far = distToTarget.AddRightShoulderSet("Target_Far", 150, 300, 1000);
+
+    FuzzyVariable& velocity = m_FuzzyModule.CreateFLV("velocity");
+    FzSet& Target_Slow = velocity.AddLeftShoulderSet("Target_Slow", 0, 0.125, 0.375);
+    FzSet& Target_MediumSpeed = velocity.AddTriangularSet("Target_MediumSpeed", 0.25, 0.5, 0.75);
+    FzSet& Target_Fast = velocity.AddRightShoulderSet("Target_Fast", 0.5, 0.75, 2.0);
+
+    FuzzyVariable& desirability = m_FuzzyModule.CreateFLV("desirability");
+    FzSet& VeryDesirable = desirability.AddRightShoulderSet("VeryDesirable", 50, 75, 100);
+    FzSet& Desirable = desirability.AddTriangularSet("Desirable", 25, 50, 75);
+    FzSet& Undesirable = desirability.AddLeftShoulderSet("Undesirable", 0, 25, 50);
+
+    //------------------------------
+    //target close
+    //target close & slow
+    m_FuzzyModule.AddRule(FzAND(Target_Close, Target_Slow,shortPeriod), FzFairly(Desirable));
+    m_FuzzyModule.AddRule(FzAND(Target_Close, Target_Slow, mediumPeriod), VeryDesirable);
+    m_FuzzyModule.AddRule(FzAND(Target_Close, Target_Slow, longPeriod), FzVery(VeryDesirable));
+
+    //target close & medium speed
+    m_FuzzyModule.AddRule(FzAND(Target_Close, Target_MediumSpeed, shortPeriod), FzFairly(Desirable));
+    m_FuzzyModule.AddRule(FzAND(Target_Close, Target_MediumSpeed, mediumPeriod), VeryDesirable);
+    m_FuzzyModule.AddRule(FzAND(Target_Close, Target_MediumSpeed, longPeriod), VeryDesirable);
+
+    //target close & fast
+    m_FuzzyModule.AddRule(FzAND(Target_Close, Target_Fast, shortPeriod), FzFairly(Desirable));
+    m_FuzzyModule.AddRule(FzAND(Target_Close, Target_Fast, mediumPeriod), Desirable);
+    m_FuzzyModule.AddRule(FzAND(Target_Close, Target_Fast, longPeriod), FzFairly(VeryDesirable));
+
+    //------------------------------
+    //target medium
+    //target medium & slow
+    m_FuzzyModule.AddRule(FzAND(Target_Medium, Target_Slow, shortPeriod), FzFairly(Desirable));
+    m_FuzzyModule.AddRule(FzAND(Target_Medium, Target_Slow, mediumPeriod), Desirable);
+    m_FuzzyModule.AddRule(FzAND(Target_Medium, Target_Slow, longPeriod), FzFairly(VeryDesirable));
+
+    //target medium & medium speed
+    m_FuzzyModule.AddRule(FzAND(Target_Medium, Target_MediumSpeed, shortPeriod), FzFairly(Undesirable));
+    m_FuzzyModule.AddRule(FzAND(Target_Medium, Target_MediumSpeed, mediumPeriod), FzFairly(Desirable));
+    m_FuzzyModule.AddRule(FzAND(Target_Medium, Target_MediumSpeed, longPeriod), FzVery(Desirable));
+
+    //target medium & fast
+    m_FuzzyModule.AddRule(FzAND(Target_Medium, Target_Fast, shortPeriod), Undesirable);
+    m_FuzzyModule.AddRule(FzAND(Target_Medium, Target_Fast, mediumPeriod), FzFairly(Desirable));
+    m_FuzzyModule.AddRule(FzAND(Target_Medium, Target_Fast, longPeriod), FzFairly(Desirable));
+
+    //------------------------------
+    //target far
+    //target far & slow
+    m_FuzzyModule.AddRule(FzAND(Target_Far, Target_Slow, shortPeriod), Undesirable);
+    m_FuzzyModule.AddRule(FzAND(Target_Far, Target_Slow, mediumPeriod), FzFairly(Undesirable));
+    m_FuzzyModule.AddRule(FzAND(Target_Far, Target_Slow, longPeriod), FzVery(Desirable));
+
+    //target far & medium speed
+    m_FuzzyModule.AddRule(FzAND(Target_Far, Target_MediumSpeed, shortPeriod), FzVery(Undesirable));
+    m_FuzzyModule.AddRule(FzAND(Target_Far, Target_MediumSpeed, mediumPeriod), FzFairly(Undesirable));
+    m_FuzzyModule.AddRule(FzAND(Target_Far, Target_MediumSpeed, longPeriod), FzFairly(Desirable));
+    
+    //Target far and fast
+    m_FuzzyModule.AddRule(FzAND(Target_Far, Target_Fast, shortPeriod), FzVery(Undesirable));
+    m_FuzzyModule.AddRule(FzAND(Target_Far, Target_Fast, mediumPeriod), FzFairly(Undesirable));
+    m_FuzzyModule.AddRule(FzAND(Target_Far, Target_Fast, longPeriod), FzFairly(Desirable));
+
+
+
+}
+
+
+double Raven_WeaponSystem::getShotDesirability(double distToTarget, double timeTargetHasBeenVisible,double targetVelocity)
+{
+    //ici qu'il faut se servir des r�gles, fuzzifier toutes les variables demand� par le prof
+        //bien penser � defuzifier la valeur apr�s.
+    m_FuzzyModule.Fuzzify("distToTarget", distToTarget);
+    m_FuzzyModule.Fuzzify("velocity", targetVelocity);
+    m_FuzzyModule.Fuzzify("visionTimeOnTarget", timeTargetHasBeenVisible);
+    LastDesirabilityScore = m_FuzzyModule.DeFuzzify("desirability", FuzzyModule::max_av);
+    return LastDesirabilityScore;
 }
 
 //-------------------------------- SelectWeapon -------------------------------
@@ -173,67 +271,74 @@ void Raven_WeaponSystem::ChangeWeapon(unsigned int type)
 //  this method aims the bots current weapon at the target (if there is a
 //  target) and, if aimed correctly, fires a round
 //-----------------------------------------------------------------------------
-void Raven_WeaponSystem::TakeAimAndShoot()const
+void Raven_WeaponSystem::TakeAimAndShoot()//const
 {
+    if (m_pOwner->GetTargetSys()->isTargetPresent())
+    {
+        //calculate the distance to the target
+        double DistToTarget = Vec2DDistance(m_pOwner->Pos(), m_pOwner->GetTargetSys()->GetTarget()->Pos());
+        double targetSpeed = m_pOwner->GetTargetSys()->GetTarget()->Speed();
+        double timeTargetHasBeenSeen = m_pOwner->GetTargetSys()->GetTimeTargetHasBeenVisible();
+        double score = getShotDesirability(DistToTarget, timeTargetHasBeenSeen, targetSpeed);
+
+          // faire en sorte de r�cup�rer toutes les donn�es/variables � fuzzifier.
+        //faire un get desirability sur la vis�e et l'utiliser pour savoir si c'est cool de tirer et apr�s �a ne change pas
+          //if get desirability is desirable on take le shot.
+        if (score>40) //40 because it's near the peak for desirable (50)
+        {
+            //the position the weapon will be aimed at
+            Vector2D AimingPos = m_pOwner->GetTargetBot()->Pos();
+
+            //if the current weapon is not an instant hit type gun the target position
+            //must be adjusted to take into account the predicted movement of the 
+            //target
+            if (GetCurrentWeapon()->GetType() == type_rocket_launcher ||
+                GetCurrentWeapon()->GetType() == type_blaster)
+            {
+                AimingPos = PredictFuturePositionOfTarget();
+
+                //if the weapon is aimed correctly, there is line of sight between the
+                //bot and the aiming position and it has been in view for a period longer
+                //than the bot's reaction time, shoot the weapon
+                if (m_pOwner->RotateFacingTowardPosition(AimingPos) &&
+                    (m_pOwner->GetTargetSys()->GetTimeTargetHasBeenVisible() >
+                        m_dReactionTime) &&
+                    m_pOwner->hasLOSto(AimingPos))
+                {
+                    AddNoiseToAim(AimingPos);
+
+                    GetCurrentWeapon()->ShootAt(AimingPos);
+                }
+            }
+
+            //no need to predict movement, aim directly at target
+            else
+            {
+                //if the weapon is aimed correctly and it has been in view for a period
+                //longer than the bot's reaction time, shoot the weapon
+                if (m_pOwner->RotateFacingTowardPosition(AimingPos) &&
+                    (m_pOwner->GetTargetSys()->GetTimeTargetHasBeenVisible() >
+                        m_dReactionTime))
+                {
+                    AddNoiseToAim(AimingPos);
+
+                    GetCurrentWeapon()->ShootAt(AimingPos);
+                }
+            }
+
+        }
+    
+    //no target to shoot at so rotate facing to be parallel with the bot's
+    //heading direction
+        else
+        {
+            m_pOwner->RotateFacingTowardPosition(m_pOwner->Pos() + m_pOwner->Heading());
+        }
   //aim the weapon only if the current target is shootable or if it has only
   //very recently gone out of view (this latter condition is to ensure the 
   //weapon is aimed at the target even if it temporarily dodges behind a wall
   //or other cover)
-  if (m_pOwner->GetTargetSys()->isTargetShootable() ||
-      (m_pOwner->GetTargetSys()->GetTimeTargetHasBeenOutOfView() < 
-       m_dAimPersistance) )
-  {
-    //the position the weapon will be aimed at
-    Vector2D AimingPos = m_pOwner->GetTargetBot()->Pos();
-    
-    //if the current weapon is not an instant hit type gun the target position
-    //must be adjusted to take into account the predicted movement of the 
-    //target
-    if (!isInstantHit())
-    {
-      AimingPos = PredictFuturePositionOfTarget();
-
-      //if the weapon is aimed correctly, there is line of sight between the
-      //bot and the aiming position and it has been in view for a period longer
-      //than the bot's reaction time, shoot the weapon
-      if ( m_pOwner->RotateFacingTowardPosition(AimingPos) &&
-           (m_pOwner->GetTargetSys()->GetTimeTargetHasBeenVisible() >
-            m_dReactionTime) &&
-           m_pOwner->hasLOSto(AimingPos) )
-      {
-        AddNoiseToAim(AimingPos);
-		if (m_pOwner->doesShoot()) {
-			GetCurrentWeapon()->ShootAt(AimingPos);
-		}
-      }
     }
-
-    //no need to predict movement, aim directly at target
-    else
-    {
-      //if the weapon is aimed correctly and it has been in view for a period
-      //longer than the bot's reaction time, shoot the weapon
-      if ( m_pOwner->RotateFacingTowardPosition(AimingPos) &&
-           (m_pOwner->GetTargetSys()->GetTimeTargetHasBeenVisible() >
-            m_dReactionTime) &&
-		  m_pOwner->hasLOSto(AimingPos))
-      {
-        AddNoiseToAim(AimingPos);
-        
-		if (m_pOwner->doesShoot()) {
-			GetCurrentWeapon()->ShootAt(AimingPos);
-		}
-      }
-    }
-
-  }
-  
-  //no target to shoot at so rotate facing to be parallel with the bot's
-  //heading direction
-  else
-  {
-    m_pOwner->RotateFacingTowardPosition(m_pOwner->Pos()+ m_pOwner->Heading());
-  }
 }
 
 bool Raven_WeaponSystem::isInstantHit() const {
