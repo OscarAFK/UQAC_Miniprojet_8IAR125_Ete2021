@@ -108,6 +108,9 @@ public:
   //returns the position of a graph node selected at random
   Vector2D GetRandomNodeLocation()const;
   
+  //returns the position of a graph node selected at random
+  Vector2D GetRandomNodeLocationWhithinRange(Vector2D origin, double range)const;
+
   
   void  UpdateTriggerSystem(std::list<Raven_Bot*>& bots);
 

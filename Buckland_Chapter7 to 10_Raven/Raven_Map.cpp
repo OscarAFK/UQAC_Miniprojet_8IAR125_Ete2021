@@ -374,6 +374,14 @@ Vector2D Raven_Map::GetRandomNodeLocation()const
   return pN->Pos();
 }
 
+//------------------------- GetRandomNodeLocationWhithinRange -----------------------------
+//
+//  returns a random position within a range
+//-----------------------------------------------------------------------------
+Vector2D Raven_Map::GetRandomNodeLocationWhithinRange(Vector2D origin, double range)const
+{
+    return (origin + Vector2D(RandInRange(-range, range), RandInRange(-range, range)));
+}
 
 //--------------------------- Render ------------------------------------------
 //-----------------------------------------------------------------------------
