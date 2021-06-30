@@ -236,6 +236,7 @@ bool Raven_Bot::HandleMessage(const Telegram& msg)
     //if this bot is now dead let the shooter know
     if (isDead())
     {
+      //do something here to drop weapons.
       Dispatcher->DispatchMsg(SEND_MSG_IMMEDIATELY,
                               ID(),
                               msg.Sender,

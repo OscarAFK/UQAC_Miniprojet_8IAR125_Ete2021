@@ -22,10 +22,10 @@
 #include "armory/Projectile_Pellet.h"
 #include "armory/Projectile_Slug.h"
 #include "armory/Projectile_Bolt.h"
-
+#include "Debug/DebugConsole.h"
 #include "goals/Goal_Think.h"
 #include "goals/Raven_Goal_Types.h"
-
+typedef std::map<int, Raven_Weapon*>  WeaponMap;
 //uncomment to write object creation/deletion to debug console
 //#define  LOG_CREATIONAL_STUFF
 
@@ -160,7 +160,9 @@ void Raven_Game::Update()
     {
       //create a grave
       m_pGraveMarkers->AddGrave((*curBot)->Pos());
-
+      //drop weapons here 
+      WeaponMap weaponInventory= (*curBot)->GetWeaponSys()->getAllWeaponsFromInventory();
+      //addWeaponGiver to certain location that is know from the member of the team
       //change its status to spawning
       (*curBot)->SetSpawning();
     }

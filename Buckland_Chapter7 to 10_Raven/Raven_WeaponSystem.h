@@ -106,7 +106,7 @@ public:
 
   //returns the amount of ammo remaining for the specified weapon
   int           GetAmmoRemainingForWeapon(unsigned int weapon_type);
-
+  WeaponMap      getAllWeaponsFromInventory() { return m_WeaponMap; }
   double         ReactionTime()const{return m_dReactionTime;}
 
   void          RenderCurrentWeapon()const;
