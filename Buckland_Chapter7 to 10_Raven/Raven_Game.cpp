@@ -150,11 +150,27 @@ void Raven_Game::Update()
   {
 	  if (m_pSelectedBot && m_pSelectedBot->isPossessed())
 	  {
-		  vector<double> inputs;
-		  Vector2D AimingPos = m_pSelectedBot->GetTargetBot()->Pos();
-		  if (!m_pSelectedBot->GetWeaponSys()->isInstantHit()) {
-			  AimingPos = m_pSelectedBot->GetWeaponSys()->PredictFuturePositionOfTarget();
+		  try {
+			  vector<double> inputs;
+			  Vector2D AimingPos = m_pSelectedBot->GetTargetBot()->Pos();
+			  if (!m_pSelectedBot->GetWeaponSys()->isInstantHit()) {
+				  AimingPos = m_pSelectedBot->GetWeaponSys()->PredictFuturePositionOfTarget();
+			  }
+			  inputs.push_back(m_pSelectedBot->isFacing(m_pSelectedBot->GetTargetBot()->Pos()) ? 1 : 0);
+			  inputs.push_back(m_pSelectedBot->GetTargetSys()->GetTimeTargetHasBeenVisible());
+			  inputs.push_back(m_pSelectedBot->hasLOSto(AimingPos) ? 1 : 0);
+			  inputs.push_back(AimingPos.x);
+			  inputs.push_back(AimingPos.y);
+			  inputs.push_back(m_pSelectedBot->Pos().x);
+			  inputs.push_back(m_pSelectedBot->Pos().y);
+			  vector<double> outputs;
+			  outputs.push_back(0);
+			  humanData.AddData(inputs, outputs);
 		  }
+		  catch (const std::exception&) {
+
+		  }
+<<<<<<< Updated upstream
 		  inputs.push_back(m_pSelectedBot->RotateFacingTowardPosition(m_pSelectedBot->GetTargetBot()->Pos()) ? 1 : 0);
 		  inputs.push_back(m_pSelectedBot->GetTargetSys()->GetTimeTargetHasBeenVisible());
 		  inputs.push_back(m_pSelectedBot->hasLOSto(AimingPos) ? 1 : 0);
@@ -165,6 +181,19 @@ void Raven_Game::Update()
 		  vector<double> outputs;
 		  outputs.push_back(0);
 		  humanData.AddData(inputs, outputs);
+||||||| constructed merge base
+		  inputs.push_back(m_pSelectedBot->isFacing(m_pSelectedBot->GetTargetBot()->Pos()) ? 1 : 0);
+		  inputs.push_back(m_pSelectedBot->GetTargetSys()->GetTimeTargetHasBeenVisible());
+		  inputs.push_back(m_pSelectedBot->hasLOSto(AimingPos) ? 1 : 0);
+		  inputs.push_back(AimingPos.x);
+		  inputs.push_back(AimingPos.y);
+		  inputs.push_back(m_pSelectedBot->Pos().x);
+		  inputs.push_back(m_pSelectedBot->Pos().y);
+		  vector<double> outputs;
+		  outputs.push_back(0);
+		  humanData.AddData(inputs, outputs);
+=======
+>>>>>>> Stashed changes
 	  }
   }
   
@@ -275,7 +304,7 @@ void Raven_Game::AddBots(unsigned int NumBotsToAdd)
   {
     //create a bot. (its position is irrelevant at this point because it will
     //not be rendered until it is spawned)
-    Raven_Bot* rb = new Raven_Bot(this, Vector2D(),0);
+    Raven_Bot* rb = new Raven_Bot(this, Vector2D(),0, "");
 
     //switch the default steering behaviors on
     rb->GetSteering()->WallAvoidanceOn();
@@ -356,11 +385,6 @@ void Raven_Game::AddRailGunSlug(Raven_Bot* shooter, Vector2D target)
   #ifdef LOG_CREATIONAL_STUFF
   debug_con << "Adding a rail gun slug" << rp->ID() << " at pos " << rp->Pos() << "";
 #endif
-}
-
-void Raven_Game::Breakpoint() {
-	int a = 10;
-	return;
 }
 
 //------------------------- AddShotGunPellet -----------------------------------
@@ -446,12 +470,20 @@ void Raven_Game::ExorciseAnyPossessedBot()
 
 void Raven_Game::AddLearningBot(unsigned int NumBotsToAdd)
 {
+<<<<<<< Updated upstream
 	string learningSaveFile = "test";
+||||||| constructed merge base
+	string learningSaveFile = "test.txt";
+=======
+	string learningSaveFile = "network";
+>>>>>>> Stashed changes
 	while (NumBotsToAdd--)
 	{
 		//create a bot. (its position is irrelevant at this point because it will
 		//not be rendered until it is spawned)
-		Raven_Learning* rb = new Raven_Learning(this, Vector2D(), 0, learningSaveFile);
+		Raven_Bot* rb = new Raven_Bot(this, Vector2D(), 0);
+
+		rb->TrainInside(humanData);
 
 		//switch the default steering behaviors on
 		rb->GetSteering()->WallAvoidanceOn();
@@ -469,6 +501,27 @@ void Raven_Game::AddLearningBot(unsigned int NumBotsToAdd)
 	}
 }
 
+/**void Raven_Game::AddLearningBotFromObject(CNeuralNet neuralNet)
+{
+	//create a bot. (its position is irrelevant at this point because it will
+		//not be rendered until it is spawned)
+	Raven_Bot* rb = new Raven_Bot(this, Vector2D(), 0, neuralNet);
+
+	//switch the default steering behaviors on
+	rb->GetSteering()->WallAvoidanceOn();
+	rb->GetSteering()->SeparationOn();
+
+	m_Bots.push_back(rb);
+
+	//register the bot with the entity manager
+	EntityMgr->RegisterEntity(rb);
+
+
+#ifdef LOG_CREATIONAL_STUFF
+	debug_con << "Adding bot with ID " << ttos(rb->ID()) << "";
+#endif
+}**/
+
 void Raven_Game::RecordHumanPlayer()
 {
 	if (m_pSelectedBot)
@@ -482,7 +535,8 @@ void Raven_Game::TrainNeurNet()
 	if (myNet.Train(&humanData)) {
 		try
 		{
-			myNet.SaveMLPNetwork("test");
+//			AddLearningBotFromObject(myNet);
+			myNet.SaveMLPNetwork("network");
 		}
 		catch (const std::exception&)
 		{

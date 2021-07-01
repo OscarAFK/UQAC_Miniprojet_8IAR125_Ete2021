@@ -46,7 +46,7 @@ SNeuronLayer::SNeuronLayer(int NumNeurons = 4,
                            int NumInputsPerNeuron = 4):	m_iNumNeurons(NumNeurons)
 {
 	for (int i=0; i<NumNeurons; ++i)
-		m_vecNeurons.push_back(SNeuron(NumInputsPerNeuron));
+		m_vecNeurons.emplace_back(NumInputsPerNeuron);
 
 }
 
@@ -94,6 +94,21 @@ CNeuralNet::CNeuralNet(int NumInputs,
 	CreateNet();
 }
 
+CNeuralNet::CNeuralNet(int NumInputs,
+	int NumOutputs,
+	int HiddenNeurons,
+	double LearningRate,
+	CNeuralNet * neuralNetwork) : m_iNumInputs(NumInputs),
+	m_iNumOutputs(NumOutputs),
+	m_iNumHiddenLayers(1),
+	m_iNeuronsPerHiddenLyr(HiddenNeurons),
+	m_dLearningRate(LearningRate),
+	m_dErrorSum(9999),
+	m_bTrained(false),
+	m_iNumEpochs(0)
+{
+}
+
 //------------------------------createNet()------------------------------
 //
 //	this method builds the ANN. The weights are all initially set to 
@@ -105,23 +120,23 @@ void CNeuralNet::CreateNet()
 	if (m_iNumHiddenLayers > 0)
 	{
 		//create first hidden layer
-		m_vecLayers.push_back(SNeuronLayer(m_iNeuronsPerHiddenLyr, m_iNumInputs));
+		m_vecLayers.emplace_back(m_iNeuronsPerHiddenLyr, m_iNumInputs);
     
 		for (int i=0; i<m_iNumHiddenLayers-1; ++i)
 		{
 
-				m_vecLayers.push_back(SNeuronLayer(m_iNeuronsPerHiddenLyr,
-											 m_iNeuronsPerHiddenLyr));
+				m_vecLayers.emplace_back(m_iNeuronsPerHiddenLyr,
+											 m_iNeuronsPerHiddenLyr);
 		}
 
 		//create output layer
-		m_vecLayers.push_back(SNeuronLayer(m_iNumOutputs, m_iNeuronsPerHiddenLyr));
+		m_vecLayers.emplace_back(m_iNumOutputs, m_iNeuronsPerHiddenLyr);
 	}
 
   else
   {
 	  //create output layer
-	  m_vecLayers.push_back(SNeuronLayer(m_iNumOutputs, m_iNumInputs));
+	  m_vecLayers.emplace_back(m_iNumOutputs, m_iNumInputs);
   }
 }
 
@@ -374,25 +389,23 @@ void CNeuralNet::SaveMLPNetwork(const std::string & filename)const {
 	fwrite(&m_iNumHiddenLayers, sizeof(m_iNumHiddenLayers), 1, file);
 	if (m_iNumHiddenLayers > 0)
 		fwrite(&m_vecLayers[0], sizeof(m_vecLayers[0]), m_iNumHiddenLayers, file);
-	for (size_t i = 0; i < m_iNumHiddenLayers; i++) {
+	for (size_t i = 0; i < m_iNumHiddenLayers+1; i++) {
 		m_vecLayers[i].SaveLayer(file);
 	}
 	fclose(file);
 };
 
 void CNeuralNet::LoadMLPNetwork(const std::string & filename) {
-	m_vecLayers.clear();
+	//m_vecLayers.clear();
 
 	FILE * file;
 	file = fopen(filename.c_str(), "rb");
 	fread(&m_iNumInputs, sizeof(m_iNumInputs), 1, file);
 	fread(&m_iNumOutputs, sizeof(m_iNumOutputs), 1, file);
 	fread(&m_iNumHiddenLayers, sizeof(m_iNumHiddenLayers), 1, file);
-	m_vecLayers.resize(m_iNumHiddenLayers - 1);
-	for (size_t i = 0; i < m_iNumHiddenLayers; i++) {
+	//m_vecLayers.resize(m_iNumHiddenLayers - 1);
+	for (size_t i = 0; i < m_iNumHiddenLayers+1; i++) {
 		m_vecLayers[i].LoadLayer(file);
 	}
 	fclose(file);
 };
-
-

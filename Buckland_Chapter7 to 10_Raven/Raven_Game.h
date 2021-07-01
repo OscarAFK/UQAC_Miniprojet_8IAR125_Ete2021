@@ -105,7 +105,6 @@ public:
 	void Render();
 	void Update();
 
-	void Breakpoint();
 
 	//loads an environment from a file
 	bool LoadMap(const std::string& FileName);
@@ -176,6 +175,7 @@ public:
 
 	//when called will spawn a learning agent
 	void AddLearningBot(unsigned int NumBotsToAdd);
+	//void AddLearningBotFromObject(CNeuralNet neuralNet);
 
 	//when called will save user action to train learning agent's neural network
 	void RecordHumanPlayer();

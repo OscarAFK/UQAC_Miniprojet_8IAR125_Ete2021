@@ -150,12 +150,6 @@ LRESULT CALLBACK WindowProc (HWND   hwnd,
 
 			 break;
 
-		 case 'B':
-
-			 g_pRaven->Breakpoint();
-
-			 break;
-
          case '1':
 
            g_pRaven->ChangeWeaponOfPossessedBot(type_blaster);

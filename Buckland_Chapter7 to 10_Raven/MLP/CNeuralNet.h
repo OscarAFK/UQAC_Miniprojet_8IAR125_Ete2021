@@ -144,6 +144,7 @@ public:
 		int    HiddenNeurons,
 		double LearningRate);
 
+	CNeuralNet::CNeuralNet(int NumInputs, int NumOutputs, int HiddenNeurons, double LearningRate, CNeuralNet* neuralNetwork);
 
 	//calculates the outputs from a set of inputs
 	vector<double>	Update(vector<double> inputs);
