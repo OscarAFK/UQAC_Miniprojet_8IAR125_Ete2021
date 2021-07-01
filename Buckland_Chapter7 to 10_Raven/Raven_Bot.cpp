@@ -23,85 +23,135 @@
 #include "Debug/DebugConsole.h"
 
 //-------------------------- ctor ---------------------------------------------
-Raven_Bot::Raven_Bot(Raven_Game* world,Vector2D pos,int equipe):
+Raven_Bot::Raven_Bot(Raven_Game* world, Vector2D pos, int equipe, string neurNetSaveFile) :
 
-  MovingEntity(pos,
-               script->GetDouble("Bot_Scale"),
-               Vector2D(0,0),
-               script->GetDouble("Bot_MaxSpeed"),
-               Vector2D(1,0),
-               script->GetDouble("Bot_Mass"),
-               Vector2D(script->GetDouble("Bot_Scale"),script->GetDouble("Bot_Scale")),
-               script->GetDouble("Bot_MaxHeadTurnRate"),
-               script->GetDouble("Bot_MaxForce")),
-                 
-                 m_iMaxHealth(script->GetInt("Bot_MaxHealth")),
-                 m_iHealth(script->GetInt("Bot_MaxHealth")),
-                 m_pPathPlanner(NULL),
-                 m_pSteering(NULL),
-                 m_pWorld(world),
-                 m_pBrain(NULL),
-                 m_iNumUpdatesHitPersistant((int)(FrameRate * script->GetDouble("HitFlashTime"))),
-                 m_bHit(false),
-                 m_iScore(0),
-                 m_Status(spawning),
-                 m_bPossessed(false),
-                 m_dFieldOfView(DegsToRads(script->GetDouble("Bot_FOV"))),
-                 m_iEquipe(equipe),
-                 m_bIsTarget(false)
-           
+	MovingEntity(pos,
+		script->GetDouble("Bot_Scale"),
+		Vector2D(0, 0),
+		script->GetDouble("Bot_MaxSpeed"),
+		Vector2D(1, 0),
+		script->GetDouble("Bot_Mass"),
+		Vector2D(script->GetDouble("Bot_Scale"), script->GetDouble("Bot_Scale")),
+		script->GetDouble("Bot_MaxHeadTurnRate"),
+		script->GetDouble("Bot_MaxForce")),
+
+	m_iMaxHealth(script->GetInt("Bot_MaxHealth")),
+	m_iHealth(script->GetInt("Bot_MaxHealth")),
+	m_pPathPlanner(NULL),
+	m_pSteering(NULL),
+	m_pWorld(world),
+	m_pBrain(NULL),
+	m_iNumUpdatesHitPersistant((int)(FrameRate * script->GetDouble("HitFlashTime"))),
+	m_bHit(false),
+	m_iScore(0),
+	m_Status(spawning),
+	m_bPossessed(false),
+	m_dFieldOfView(DegsToRads(script->GetDouble("Bot_FOV"))),
+	m_iEquipe(equipe),
+	m_bIsTarget(false)
+
 {
-  SetEntityType(type_bot);
+	SetEntityType(type_bot);
 
-  SetUpVertexBuffer();
-  
-  //a bot starts off facing in the direction it is heading
-  m_vFacing = m_vHeading;
+	SetUpVertexBuffer();
 
-  //create the navigation module
-  m_pPathPlanner = new Raven_PathPlanner(this);
+	//a bot starts off facing in the direction it is heading
+	m_vFacing = m_vHeading;
 
-  //create the steering behavior class
-  m_pSteering = new Raven_Steering(world, this);
+	//create the navigation module
+	m_pPathPlanner = new Raven_PathPlanner(this);
 
-  //create the regulators
-  m_pWeaponSelectionRegulator = new Regulator(script->GetDouble("Bot_WeaponSelectionFrequency"));
-  m_pGoalArbitrationRegulator =  new Regulator(script->GetDouble("Bot_GoalAppraisalUpdateFreq"));
-  m_pTargetSelectionRegulator = new Regulator(script->GetDouble("Bot_TargetingUpdateFreq"));
-  m_pTriggerTestRegulator = new Regulator(script->GetDouble("Bot_TriggerUpdateFreq"));
-  m_pVisionUpdateRegulator = new Regulator(script->GetDouble("Bot_VisionUpdateFreq"));
+	//create the steering behavior class
+	m_pSteering = new Raven_Steering(world, this);
 
-  //create the goal queue
-  m_pBrain = new Goal_Think(this);
+	if (neurNetSaveFile.empty()) {
+		m_neuralNetwork = new CNeuralNet(7, 1, 7, 0.75);
+		m_bLearningBot = false;
+	}
+	else {
+		try
+		{
+			m_neuralNetwork = new CNeuralNet(7, 1, 7, 0.75);
+			m_bLearningBot = true;
+		}
+		catch (const std::exception&)
+		{
+			//std::cout << "Unable to load from file.";
+		}
+	}
+	//create the regulators
+	m_pWeaponSelectionRegulator = new Regulator(script->GetDouble("Bot_WeaponSelectionFrequency"));
+	m_pGoalArbitrationRegulator = new Regulator(script->GetDouble("Bot_GoalAppraisalUpdateFreq"));
+	m_pTargetSelectionRegulator = new Regulator(script->GetDouble("Bot_TargetingUpdateFreq"));
+	m_pTriggerTestRegulator = new Regulator(script->GetDouble("Bot_TriggerUpdateFreq"));
+	m_pVisionUpdateRegulator = new Regulator(script->GetDouble("Bot_VisionUpdateFreq"));
 
-  //create the targeting system
-  m_pTargSys = new Raven_TargetingSystem(this);
+	//create the goal queue
+	m_pBrain = new Goal_Think(this);
 
-  m_pWeaponSys = new Raven_WeaponSystem(this,
-                                        script->GetDouble("Bot_ReactionTime"),
-                                        script->GetDouble("Bot_AimAccuracy"),
-                                        script->GetDouble("Bot_AimPersistance"));
+	//create the targeting system
+	m_pTargSys = new Raven_TargetingSystem(this);
 
-  m_pSensoryMem = new Raven_SensoryMemory(this, script->GetDouble("Bot_MemorySpan"));
+	m_pWeaponSys = new Raven_WeaponSystem(this,
+		script->GetDouble("Bot_ReactionTime"),
+		script->GetDouble("Bot_AimAccuracy"),
+		script->GetDouble("Bot_AimPersistance"));
+
+	m_pSensoryMem = new Raven_SensoryMemory(this, script->GetDouble("Bot_MemorySpan"));
 }
+
+
 
 //-------------------------------- dtor ---------------------------------------
 //-----------------------------------------------------------------------------
 Raven_Bot::~Raven_Bot()
 {
-  debug_con << "deleting raven bot (id = " << ID() << ")" << "";
-  
-  delete m_pBrain;
-  delete m_pPathPlanner;
-  delete m_pSteering;
-  delete m_pWeaponSelectionRegulator;
-  delete m_pTargSys;
-  delete m_pGoalArbitrationRegulator;
-  delete m_pTargetSelectionRegulator;
-  delete m_pTriggerTestRegulator;
-  delete m_pVisionUpdateRegulator;
-  delete m_pWeaponSys;
-  delete m_pSensoryMem;
+	debug_con << "deleting raven bot (id = " << ID() << ")" << "";
+
+	delete m_pBrain;
+	delete m_pPathPlanner;
+	delete m_pSteering;
+	delete m_pWeaponSelectionRegulator;
+	delete m_pTargSys;
+	delete m_pGoalArbitrationRegulator;
+	delete m_pTargetSelectionRegulator;
+	delete m_pTriggerTestRegulator;
+	delete m_pVisionUpdateRegulator;
+	delete m_pWeaponSys;
+	delete m_pSensoryMem;
+}
+
+void Raven_Bot::TrainInside(CData humanData)
+{
+	m_neuralNetwork->Train(&humanData);
+}
+
+bool Raven_Bot::doesShoot()
+{
+	if (!isLearningBot())
+	{
+		return true;
+	}
+	else {
+		vector<double> inputs;
+		Vector2D AimingPos = GetTargetBot()->Pos();
+		if (!GetWeaponSys()->isInstantHit()) {
+			AimingPos = GetWeaponSys()->PredictFuturePositionOfTarget();
+		}
+		inputs.push_back(RotateFacingTowardPosition(GetTargetBot()->Pos()) ? 1 : 0);
+		inputs.push_back(GetTargetSys()->GetTimeTargetHasBeenVisible());
+		inputs.push_back(hasLOSto(AimingPos) ? 1 : 0);
+		inputs.push_back(AimingPos.x);
+		inputs.push_back(AimingPos.y);
+		inputs.push_back(Pos().x);
+		inputs.push_back(Pos().y);
+		return m_neuralNetwork->Update(inputs).at(0) > 0.5;
+	}
+}
+
+bool Raven_Bot::isLearningBot()
+{
+	return m_bLearningBot;
 }
 
 //------------------------------- Spawn ---------------------------------------
@@ -110,59 +160,59 @@ Raven_Bot::~Raven_Bot()
 //-----------------------------------------------------------------------------
 void Raven_Bot::Spawn(Vector2D pos)
 {
-    SetAlive();
-    m_pBrain->RemoveAllSubgoals();
-    m_pTargSys->ClearTarget();
-    SetPos(pos);
-    m_pWeaponSys->Initialize();
-    RestoreHealthToMaximum();
+	SetAlive();
+	m_pBrain->RemoveAllSubgoals();
+	m_pTargSys->ClearTarget();
+	SetPos(pos);
+	m_pWeaponSys->Initialize();
+	RestoreHealthToMaximum();
 }
 
 //-------------------------------- Update -------------------------------------
 //
 void Raven_Bot::Update()
 {
-  //process the currently active goal. Note this is required even if the bot
-  //is under user control. This is because a goal is created whenever a user 
-  //clicks on an area of the map that necessitates a path planning request.
-  m_pBrain->Process();
-  
-  //Calculate the steering force and update the bot's velocity and position
-  UpdateMovement();
+	//process the currently active goal. Note this is required even if the bot
+	//is under user control. This is because a goal is created whenever a user 
+	//clicks on an area of the map that necessitates a path planning request.
+	m_pBrain->Process();
 
-  //if the bot is under AI control but not scripted
-  if (!isPossessed())
-  {           
-    //examine all the opponents in the bots sensory memory and select one
-    //to be the current target
-    if (m_pTargetSelectionRegulator->isReady())
-    {      
-      m_pTargSys->Update();
-    }
+	//Calculate the steering force and update the bot's velocity and position
+	UpdateMovement();
 
-    //appraise and arbitrate between all possible high level goals
-    if (m_pGoalArbitrationRegulator->isReady())
-    {
-       m_pBrain->Arbitrate(); 
-    }
+	//if the bot is under AI control but not scripted
+	if (!isPossessed())
+	{
+		//examine all the opponents in the bots sensory memory and select one
+		//to be the current target
+		if (m_pTargetSelectionRegulator->isReady())
+		{
+			m_pTargSys->Update();
+		}
 
-    //update the sensory memory with any visual stimulus
-    if (m_pVisionUpdateRegulator->isReady())
-    {
-      m_pSensoryMem->UpdateVision();
-    }
-  
-    //select the appropriate weapon to use from the weapons currently in
-    //the inventory
-    if (m_pWeaponSelectionRegulator->isReady())
-    {       
-      m_pWeaponSys->SelectWeapon();       
-    }
+		//appraise and arbitrate between all possible high level goals
+		if (m_pGoalArbitrationRegulator->isReady())
+		{
+			m_pBrain->Arbitrate();
+		}
 
-    //this method aims the bot's current weapon at the current target
-    //and takes a shot if a shot is possible
-    m_pWeaponSys->TakeAimAndShoot();
-  }
+		//update the sensory memory with any visual stimulus
+		if (m_pVisionUpdateRegulator->isReady())
+		{
+			m_pSensoryMem->UpdateVision();
+		}
+
+		//select the appropriate weapon to use from the weapons currently in
+		//the inventory
+		if (m_pWeaponSelectionRegulator->isReady())
+		{
+			m_pWeaponSys->SelectWeapon();
+		}
+
+		//this method aims the bot's current weapon at the current target
+		//and takes a shot if a shot is possible
+		m_pWeaponSys->TakeAimAndShoot();
+	}
 }
 
 
@@ -173,38 +223,38 @@ void Raven_Bot::Update()
 //-----------------------------------------------------------------------------
 void Raven_Bot::UpdateMovement()
 {
-  //calculate the combined steering force
-  Vector2D force = m_pSteering->Calculate();
+	//calculate the combined steering force
+	Vector2D force = m_pSteering->Calculate();
 
-  //if no steering force is produced decelerate the player by applying a
-  //braking force
-  if (m_pSteering->Force().isZero())
-  {
-    const double BrakingRate = 0.8; 
+	//if no steering force is produced decelerate the player by applying a
+	//braking force
+	if (m_pSteering->Force().isZero())
+	{
+		const double BrakingRate = 0.8;
 
-    m_vVelocity = m_vVelocity * BrakingRate;                                     
-  }
+		m_vVelocity = m_vVelocity * BrakingRate;
+	}
 
-  //calculate the acceleration
-  Vector2D accel = force / m_dMass;
+	//calculate the acceleration
+	Vector2D accel = force / m_dMass;
 
-  //update the velocity
-  m_vVelocity += accel;
+	//update the velocity
+	m_vVelocity += accel;
 
-  //make sure vehicle does not exceed maximum velocity
-  m_vVelocity.Truncate(m_dMaxSpeed);
+	//make sure vehicle does not exceed maximum velocity
+	m_vVelocity.Truncate(m_dMaxSpeed);
 
-  //update the position
-  m_vPosition += m_vVelocity;
+	//update the position
+	m_vPosition += m_vVelocity;
 
-  //if the vehicle has a non zero velocity the heading and side vectors must 
-  //be updated
-  if (!m_vVelocity.isZero())
-  {    
-    m_vHeading = Vec2DNormalize(m_vVelocity);
+	//if the vehicle has a non zero velocity the heading and side vectors must 
+	//be updated
+	if (!m_vVelocity.isZero())
+	{
+		m_vHeading = Vec2DNormalize(m_vVelocity);
 
-    m_vSide = m_vHeading.Perp();
-  }
+		m_vSide = m_vHeading.Perp();
+	}
 }
 //---------------------------- isReadyForTriggerUpdate ------------------------
 //
@@ -212,86 +262,86 @@ void Raven_Bot::UpdateMovement()
 //-----------------------------------------------------------------------------
 bool Raven_Bot::isReadyForTriggerUpdate()const
 {
-  return m_pTriggerTestRegulator->isReady();
+	return m_pTriggerTestRegulator->isReady();
 }
 
 //--------------------------- HandleMessage -----------------------------------
 //-----------------------------------------------------------------------------
 bool Raven_Bot::HandleMessage(const Telegram& msg)
 {
-  //first see if the current goal accepts the message
-  if (GetBrain()->HandleMessage(msg)) return true;
- 
-  //handle any messages not handles by the goals
-  switch(msg.Msg)
-  {
-  case Msg_TakeThatMF:
+	//first see if the current goal accepts the message
+	if (GetBrain()->HandleMessage(msg)) return true;
 
-    //just return if already dead or spawning
-    if (isDead() || isSpawning()) return true;
+	//handle any messages not handles by the goals
+	switch (msg.Msg)
+	{
+	case Msg_TakeThatMF:
 
-    //the extra info field of the telegram carries the amount of damage
-    ReduceHealth(DereferenceToType<int>(msg.ExtraInfo));
+		//just return if already dead or spawning
+		if (isDead() || isSpawning()) return true;
 
-    //if this bot is now dead let the shooter know
-    if (isDead())
-    {
-      Dispatcher->DispatchMsg(SEND_MSG_IMMEDIATELY,
-                              ID(),
-                              msg.Sender,
-                              Msg_YouGotMeYouSOB,
-                              NO_ADDITIONAL_INFO);
-    }
+		//the extra info field of the telegram carries the amount of damage
+		ReduceHealth(DereferenceToType<int>(msg.ExtraInfo));
 
-    return true;
+		//if this bot is now dead let the shooter know
+		if (isDead())
+		{
+			Dispatcher->DispatchMsg(SEND_MSG_IMMEDIATELY,
+				ID(),
+				msg.Sender,
+				Msg_YouGotMeYouSOB,
+				NO_ADDITIONAL_INFO);
+		}
 
-  case Msg_YouGotMeYouSOB:
-    
-    IncrementScore();
-    
-    //the bot this bot has just killed should be removed as the target
-    m_pTargSys->ClearTarget();
+		return true;
 
-    return true;
+	case Msg_YouGotMeYouSOB:
 
-  case Msg_GunshotSound:
+		IncrementScore();
 
-    //add the source of this sound to the bot's percepts
-    GetSensoryMem()->UpdateWithSoundSource((Raven_Bot*)msg.ExtraInfo);
+		//the bot this bot has just killed should be removed as the target
+		m_pTargSys->ClearTarget();
 
-    return true;
+		return true;
 
-  case Msg_UserHasRemovedBot:
-    {
+	case Msg_GunshotSound:
 
-      Raven_Bot* pRemovedBot = (Raven_Bot*)msg.ExtraInfo;
+		//add the source of this sound to the bot's percepts
+		GetSensoryMem()->UpdateWithSoundSource((Raven_Bot*)msg.ExtraInfo);
 
-      GetSensoryMem()->RemoveBotFromMemory(pRemovedBot);
+		return true;
 
-      //if the removed bot is the target, make sure the target is cleared
-      if (pRemovedBot == GetTargetSys()->GetTarget())
-      {
-        GetTargetSys()->ClearTarget();
-      }
+	case Msg_UserHasRemovedBot:
+	{
 
-      return true;
-    }
+		Raven_Bot* pRemovedBot = (Raven_Bot*)msg.ExtraInfo;
 
-  case Msg_UserHasDesignatedATarget:
-  {
-      GetTargetSys()->SetTargetPlayer((Raven_Bot*)msg.ExtraInfo);
-      GetSensoryMem()->UpdateWithSoundSource((Raven_Bot*)msg.ExtraInfo);
-      return true;
-  }
+		GetSensoryMem()->RemoveBotFromMemory(pRemovedBot);
 
-  case Msg_UserHasRemovedTarget:
-  {
-      GetTargetSys()->ClearTargetPlayer();
-      return true;
-  }
+		//if the removed bot is the target, make sure the target is cleared
+		if (pRemovedBot == GetTargetSys()->GetTarget())
+		{
+			GetTargetSys()->ClearTarget();
+		}
 
-  default: return false;
-  }
+		return true;
+	}
+
+	case Msg_UserHasDesignatedATarget:
+	{
+		GetTargetSys()->SetTargetPlayer((Raven_Bot*)msg.ExtraInfo);
+		GetSensoryMem()->UpdateWithSoundSource((Raven_Bot*)msg.ExtraInfo);
+		return true;
+	}
+
+	case Msg_UserHasRemovedTarget:
+	{
+		GetTargetSys()->ClearTargetPlayer();
+		return true;
+	}
+
+	default: return false;
+	}
 }
 
 //------------------ RotateFacingTowardPosition -------------------------------
@@ -304,39 +354,39 @@ bool Raven_Bot::HandleMessage(const Telegram& msg)
 //----------------------------------------------------------------------------
 bool Raven_Bot::RotateFacingTowardPosition(Vector2D target)
 {
-  Vector2D toTarget = Vec2DNormalize(target - m_vPosition);
+	Vector2D toTarget = Vec2DNormalize(target - m_vPosition);
 
-  double dot = m_vFacing.Dot(toTarget);
+	double dot = m_vFacing.Dot(toTarget);
 
-  //clamp to rectify any rounding errors
-  Clamp(dot, -1, 1);
+	//clamp to rectify any rounding errors
+	Clamp(dot, -1, 1);
 
-  //determine the angle between the heading vector and the target
-  double angle = acos(dot);
+	//determine the angle between the heading vector and the target
+	double angle = acos(dot);
 
-  //return true if the bot's facing is within WeaponAimTolerance degs of
-  //facing the target
-  const double WeaponAimTolerance = 0.01; //2 degs approx
+	//return true if the bot's facing is within WeaponAimTolerance degs of
+	//facing the target
+	const double WeaponAimTolerance = 0.01; //2 degs approx
 
-  if (angle < WeaponAimTolerance)
-  {
-    m_vFacing = toTarget;
-    return true;
-  }
+	if (angle < WeaponAimTolerance)
+	{
+		m_vFacing = toTarget;
+		return true;
+	}
 
-  //clamp the amount to turn to the max turn rate
-  if (angle > m_dMaxTurnRate) angle = m_dMaxTurnRate;
-  
-  //The next few lines use a rotation matrix to rotate the player's facing
-  //vector accordingly
-  C2DMatrix RotationMatrix;
-  
-  //notice how the direction of rotation has to be determined when creating
-  //the rotation matrix
-  RotationMatrix.Rotate(angle * m_vFacing.Sign(toTarget));	
-  RotationMatrix.TransformVector2Ds(m_vFacing);
+	//clamp the amount to turn to the max turn rate
+	if (angle > m_dMaxTurnRate) angle = m_dMaxTurnRate;
 
-  return false;
+	//The next few lines use a rotation matrix to rotate the player's facing
+	//vector accordingly
+	C2DMatrix RotationMatrix;
+
+	//notice how the direction of rotation has to be determined when creating
+	//the rotation matrix
+	RotationMatrix.Rotate(angle * m_vFacing.Sign(toTarget));
+	RotationMatrix.TransformVector2Ds(m_vFacing);
+
+	return false;
 }
 
 
@@ -345,16 +395,16 @@ bool Raven_Bot::RotateFacingTowardPosition(Vector2D target)
 //--------------------------------- ReduceHealth ----------------------------
 void Raven_Bot::ReduceHealth(unsigned int val)
 {
-  m_iHealth -= val;
+	m_iHealth -= val;
 
-  if (m_iHealth <= 0)
-  {
-    SetDead();
-  }
+	if (m_iHealth <= 0)
+	{
+		SetDead();
+	}
 
-  m_bHit = true;
+	m_bHit = true;
 
-  m_iNumUpdatesHitPersistant = (int)(FrameRate * script->GetDouble("HitFlashTime"));
+	m_iNumUpdatesHitPersistant = (int)(FrameRate * script->GetDouble("HitFlashTime"));
 }
 
 //--------------------------- Possess -----------------------------------------
@@ -363,12 +413,12 @@ void Raven_Bot::ReduceHealth(unsigned int val)
 //-----------------------------------------------------------------------------
 void Raven_Bot::TakePossession()
 {
-  if ( !(isSpawning() || isDead()))
-  {
-    m_bPossessed = true;
+	if (!(isSpawning() || isDead()))
+	{
+		m_bPossessed = true;
 
-    debug_con << "Player Possesses bot " << this->ID() << "";
-  }
+		debug_con << "Player Possesses bot " << this->ID() << "";
+	}
 }
 
 //--------------------------- SetIsTarget -----------------------------------------
@@ -377,12 +427,12 @@ void Raven_Bot::TakePossession()
 //-----------------------------------------------------------------------------
 void Raven_Bot::SetIsTarget(bool val)
 {
-    m_bIsTarget = val;
+	m_bIsTarget = val;
 
-    if(val)
-        debug_con << "Bot " << this->ID() << " is the new target" << "";
-    else
-        debug_con << "Bot " << this->ID() << " is no longer the target" << "";
+	if (val)
+		debug_con << "Bot " << this->ID() << " is the new target" << "";
+	else
+		debug_con << "Bot " << this->ID() << " is no longer the target" << "";
 }
 
 
@@ -392,21 +442,21 @@ void Raven_Bot::SetIsTarget(bool val)
 //-----------------------------------------------------------------------------
 void Raven_Bot::Exorcise()
 {
-  m_bPossessed = false;
+	m_bPossessed = false;
 
-  //when the player is exorcised then the bot should resume normal service
-  m_pBrain->AddGoal_Explore();
-  
-  debug_con << "Player is exorcised from bot " << this->ID() << "";
+	//when the player is exorcised then the bot should resume normal service
+	m_pBrain->AddGoal_Explore();
+
+	debug_con << "Player is exorcised from bot " << this->ID() << "";
 }
 
 
 //----------------------- ChangeWeapon ----------------------------------------
 void Raven_Bot::ChangeWeapon(unsigned int type)
 {
-  m_pWeaponSys->ChangeWeapon(type);
+	m_pWeaponSys->ChangeWeapon(type);
 }
-  
+
 
 //---------------------------- FireWeapon -------------------------------------
 //
@@ -414,7 +464,7 @@ void Raven_Bot::ChangeWeapon(unsigned int type)
 //-----------------------------------------------------------------------------
 void Raven_Bot::FireWeapon(Vector2D pos)
 {
-  m_pWeaponSys->ShootAt(pos);
+	m_pWeaponSys->ShootAt(pos);
 }
 
 //----------------- CalculateExpectedTimeToReachPosition ----------------------
@@ -424,7 +474,7 @@ void Raven_Bot::FireWeapon(Vector2D pos)
 //-----------------------------------------------------------------------------
 double Raven_Bot::CalculateTimeToReachPosition(Vector2D pos)const
 {
-  return Vec2DDistance(Pos(), pos) / (MaxSpeed() * FrameRate);
+	return Vec2DDistance(Pos(), pos) / (MaxSpeed() * FrameRate);
 }
 
 //------------------------ isAtPosition ---------------------------------------
@@ -433,9 +483,9 @@ double Raven_Bot::CalculateTimeToReachPosition(Vector2D pos)const
 //-----------------------------------------------------------------------------
 bool Raven_Bot::isAtPosition(Vector2D pos)const
 {
-  const static double tolerance = 10.0;
-  
-  return Vec2DDistanceSq(Pos(), pos) < tolerance * tolerance;
+	const static double tolerance = 10.0;
+
+	return Vec2DDistanceSq(Pos(), pos) < tolerance * tolerance;
 }
 
 //------------------------- hasLOSt0 ------------------------------------------
@@ -444,21 +494,21 @@ bool Raven_Bot::isAtPosition(Vector2D pos)const
 //-----------------------------------------------------------------------------
 bool Raven_Bot::hasLOSto(Vector2D pos)const
 {
-  return m_pWorld->isLOSOkay(Pos(), pos);
+	return m_pWorld->isLOSOkay(Pos(), pos);
 }
 
 //returns true if this bot can move directly to the given position
 //without bumping into any walls
 bool Raven_Bot::canWalkTo(Vector2D pos)const
 {
-  return !m_pWorld->isPathObstructed(Pos(), pos, BRadius());
+	return !m_pWorld->isPathObstructed(Pos(), pos, BRadius());
 }
 
 //similar to above. Returns true if the bot can move between the two
 //given positions without bumping into any walls
 bool Raven_Bot::canWalkBetween(Vector2D from, Vector2D to)const
 {
- return !m_pWorld->isPathObstructed(from, to, BRadius());
+	return !m_pWorld->isPathObstructed(from, to, BRadius());
 }
 
 //--------------------------- canStep Methods ---------------------------------
@@ -468,149 +518,149 @@ bool Raven_Bot::canWalkBetween(Vector2D from, Vector2D to)const
 //-----------------------------------------------------------------------------
 bool Raven_Bot::canStepLeft(Vector2D& PositionOfStep)const
 {
-  static const double StepDistance = BRadius() * 2;
+	static const double StepDistance = BRadius() * 2;
 
-  PositionOfStep = Pos() - Facing().Perp() * StepDistance - Facing().Perp() * BRadius();
+	PositionOfStep = Pos() - Facing().Perp() * StepDistance - Facing().Perp() * BRadius();
 
-  return canWalkTo(PositionOfStep);
+	return canWalkTo(PositionOfStep);
 }
 
 bool Raven_Bot::canStepRight(Vector2D& PositionOfStep)const
 {
-  static const double StepDistance = BRadius() * 2;
+	static const double StepDistance = BRadius() * 2;
 
-  PositionOfStep = Pos() + Facing().Perp() * StepDistance + Facing().Perp() * BRadius();
+	PositionOfStep = Pos() + Facing().Perp() * StepDistance + Facing().Perp() * BRadius();
 
-  return canWalkTo(PositionOfStep);
+	return canWalkTo(PositionOfStep);
 }
 
 bool Raven_Bot::canStepForward(Vector2D& PositionOfStep)const
 {
-  static const double StepDistance = BRadius() * 2;
+	static const double StepDistance = BRadius() * 2;
 
-  PositionOfStep = Pos() + Facing() * StepDistance + Facing() * BRadius();
+	PositionOfStep = Pos() + Facing() * StepDistance + Facing() * BRadius();
 
-  return canWalkTo(PositionOfStep);
+	return canWalkTo(PositionOfStep);
 }
 
 bool Raven_Bot::canStepBackward(Vector2D& PositionOfStep)const
 {
-  static const double StepDistance = BRadius() * 2;
+	static const double StepDistance = BRadius() * 2;
 
-  PositionOfStep = Pos() - Facing() * StepDistance - Facing() * BRadius();
+	PositionOfStep = Pos() - Facing() * StepDistance - Facing() * BRadius();
 
-  return canWalkTo(PositionOfStep);
+	return canWalkTo(PositionOfStep);
 }
 
 //--------------------------- Render -------------------------------------
 //
 //------------------------------------------------------------------------
-void Raven_Bot::Render()                                         
+void Raven_Bot::Render()
 {
-  //when a bot is hit by a projectile this value is set to a constant user
-  //defined value which dictates how long the bot should have a thick red
-  //circle drawn around it (to indicate it's been hit) The circle is drawn
-  //as long as this value is positive. (see Render)
-  m_iNumUpdatesHitPersistant--;
+	//when a bot is hit by a projectile this value is set to a constant user
+	//defined value which dictates how long the bot should have a thick red
+	//circle drawn around it (to indicate it's been hit) The circle is drawn
+	//as long as this value is positive. (see Render)
+	m_iNumUpdatesHitPersistant--;
 
 
-  if (isDead() || isSpawning()) return;
-  
-  gdi->BluePen();
-  
-  m_vecBotVBTrans = WorldTransform(m_vecBotVB,
-                                   Pos(),
-                                   Facing(),
-                                   Facing().Perp(),
-                                   Scale());
+	if (isDead() || isSpawning()) return;
 
-  gdi->ClosedShape(m_vecBotVBTrans);
-  
-  //draw the head
-  gdi->BrownBrush();
-  gdi->Circle(Pos(), 6.0 * Scale().x);
+	gdi->BluePen();
+
+	m_vecBotVBTrans = WorldTransform(m_vecBotVB,
+		Pos(),
+		Facing(),
+		Facing().Perp(),
+		Scale());
+
+	gdi->ClosedShape(m_vecBotVBTrans);
+
+	//draw the head
+	gdi->BrownBrush();
+	gdi->Circle(Pos(), 6.0 * Scale().x);
 
 
-  //render the bot's weapon
-  m_pWeaponSys->RenderCurrentWeapon();
+	//render the bot's weapon
+	m_pWeaponSys->RenderCurrentWeapon();
 
-  //render a thick red circle if the bot gets hit by a weapon
-  if (m_bHit)
-  {
-    gdi->ThickRedPen();
-    gdi->HollowBrush();
-    gdi->Circle(m_vPosition, BRadius()+1);
+	//render a thick red circle if the bot gets hit by a weapon
+	if (m_bHit)
+	{
+		gdi->ThickRedPen();
+		gdi->HollowBrush();
+		gdi->Circle(m_vPosition, BRadius() + 1);
 
-    if (m_iNumUpdatesHitPersistant <= 0)
-    {
-      m_bHit = false;
-    }
-  }
+		if (m_iNumUpdatesHitPersistant <= 0)
+		{
+			m_bHit = false;
+		}
+	}
 
-  gdi->TransparentText();
-  gdi->TextColor(0,255,0);
+	gdi->TransparentText();
+	gdi->TextColor(0, 255, 0);
 
-  if (UserOptions->m_bShowBotIDs)
-  {
-    gdi->TextAtPos(Pos().x -10, Pos().y-20, std::to_string(ID()));
-  }
+	if (UserOptions->m_bShowBotIDs)
+	{
+		gdi->TextAtPos(Pos().x - 10, Pos().y - 20, std::to_string(ID()));
+	}
 
-  if (UserOptions->m_bShowBotHealth)
-  {
-    gdi->TextAtPos(Pos().x-40, Pos().y-5, "H:"+ std::to_string(Health()));
-  }
+	if (UserOptions->m_bShowBotHealth)
+	{
+		gdi->TextAtPos(Pos().x - 40, Pos().y - 5, "H:" + std::to_string(Health()));
+	}
 
-  if (UserOptions->m_bShowScore)
-  {
-    gdi->TextAtPos(Pos().x-40, Pos().y+10, "Scr:"+ std::to_string(Score()));
-  }    
+	if (UserOptions->m_bShowScore)
+	{
+		gdi->TextAtPos(Pos().x - 40, Pos().y + 10, "Scr:" + std::to_string(Score()));
+	}
 }
 
 //------------------------- SetUpVertexBuffer ---------------------------------
 //-----------------------------------------------------------------------------
 void Raven_Bot::SetUpVertexBuffer()
 {
-  //setup the vertex buffers and calculate the bounding radius
-  const int NumBotVerts = 4;
-  const Vector2D bot[NumBotVerts] = {Vector2D(-3, 8),
-                                     Vector2D(3,10),
-                                     Vector2D(3,-10),
-                                     Vector2D(-3,-8)};
+	//setup the vertex buffers and calculate the bounding radius
+	const int NumBotVerts = 4;
+	const Vector2D bot[NumBotVerts] = { Vector2D(-3, 8),
+									   Vector2D(3,10),
+									   Vector2D(3,-10),
+									   Vector2D(-3,-8) };
 
-  m_dBoundingRadius = 0.0;
-  double scale = script->GetDouble("Bot_Scale");
-  
-  for (int vtx=0; vtx<NumBotVerts; ++vtx)
-  {
-    m_vecBotVB.push_back(bot[vtx]);
+	m_dBoundingRadius = 0.0;
+	double scale = script->GetDouble("Bot_Scale");
 
-    //set the bounding radius to the length of the 
-    //greatest extent
-    if (abs(bot[vtx].x)*scale > m_dBoundingRadius)
-    {
-      m_dBoundingRadius = abs(bot[vtx].x*scale);
-    }
+	for (int vtx = 0; vtx < NumBotVerts; ++vtx)
+	{
+		m_vecBotVB.push_back(bot[vtx]);
 
-    if (abs(bot[vtx].y)*scale > m_dBoundingRadius)
-    {
-      m_dBoundingRadius = abs(bot[vtx].y)*scale;
-    }
-  }
+		//set the bounding radius to the length of the 
+		//greatest extent
+		if (abs(bot[vtx].x)*scale > m_dBoundingRadius)
+		{
+			m_dBoundingRadius = abs(bot[vtx].x*scale);
+		}
+
+		if (abs(bot[vtx].y)*scale > m_dBoundingRadius)
+		{
+			m_dBoundingRadius = abs(bot[vtx].y)*scale;
+		}
+	}
 }
 
 
 
-void Raven_Bot::RestoreHealthToMaximum(){m_iHealth = m_iMaxHealth;}
+void Raven_Bot::RestoreHealthToMaximum() { m_iHealth = m_iMaxHealth; }
 
 void Raven_Bot::ChangerEquipe(unsigned int val)
 {
-    m_iEquipe = val;
+	m_iEquipe = val;
 
-    debug_con << "Bot " << this->ID() << " is sent to team " << this->Equipe() << "";
+	debug_con << "Bot " << this->ID() << " is sent to team " << this->Equipe() << "";
 }
 
 void Raven_Bot::IncreaseHealth(unsigned int val)
 {
-  m_iHealth+=val; 
-  Clamp(m_iHealth, 0, m_iMaxHealth);
+	m_iHealth += val;
+	Clamp(m_iHealth, 0, m_iMaxHealth);
 }

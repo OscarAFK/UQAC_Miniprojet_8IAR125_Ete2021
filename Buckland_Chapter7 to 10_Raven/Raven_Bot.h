@@ -17,6 +17,7 @@
 #include "misc/utils.h"
 #include "Raven_TargetingSystem.h"
 #include "Raven_WeaponSystem.h"
+#include "..\Buckland_Chapter7 to 10_Raven\MLP\CNeuralNet.h"
 
 
 class Raven_PathPlanner;
@@ -110,6 +111,9 @@ private:
   //set to true when a human player takes over control of the bot
   bool                               m_bPossessed;
 
+  //set to true when the bot is a learning bot
+  bool								 m_bLearningBot;
+
   //set to true when a human player is targeting this bot
   bool                               m_bIsTarget;
 
@@ -118,6 +122,8 @@ private:
   //the buffer for the transformed vertices
   std::vector<Vector2D>              m_vecBotVBTrans;
 
+  //neural network, only in use if learning
+  CNeuralNet* m_neuralNetwork;
 
   //bots shouldn't be copied, only created or respawned
   Raven_Bot(const Raven_Bot&);
@@ -133,11 +139,15 @@ private:
 
 public:
   
-  Raven_Bot(Raven_Game* world, Vector2D pos, int equipe);
+  Raven_Bot(Raven_Game* world, Vector2D pos, int equipe, string neuralNetwork = "");
   virtual ~Raven_Bot();
 
+  void TrainInside(CData data);
+
   //always return true, simplify implementation for child class
-  bool doesShoot() { return true; };
+  bool doesShoot();
+
+  bool isLearningBot();
 
   //the usual suspects
   void         Render();
