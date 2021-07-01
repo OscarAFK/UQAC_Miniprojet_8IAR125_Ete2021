@@ -269,79 +269,80 @@ bool Raven_Bot::isReadyForTriggerUpdate()const
 //-----------------------------------------------------------------------------
 bool Raven_Bot::HandleMessage(const Telegram& msg)
 {
-	//first see if the current goal accepts the message
-	if (GetBrain()->HandleMessage(msg)) return true;
+  //first see if the current goal accepts the message
+  if (GetBrain()->HandleMessage(msg)) return true;
+ 
+  //handle any messages not handles by the goals
+  switch(msg.Msg)
+  {
+  case Msg_TakeThatMF:
 
-	//handle any messages not handles by the goals
-	switch (msg.Msg)
-	{
-	case Msg_TakeThatMF:
+    //just return if already dead or spawning
+    if (isDead() || isSpawning()) return true;
 
-		//just return if already dead or spawning
-		if (isDead() || isSpawning()) return true;
+    //the extra info field of the telegram carries the amount of damage
+    ReduceHealth(DereferenceToType<int>(msg.ExtraInfo));
 
-		//the extra info field of the telegram carries the amount of damage
-		ReduceHealth(DereferenceToType<int>(msg.ExtraInfo));
+    //if this bot is now dead let the shooter know
+    if (isDead())
+    {
+      //do something here to drop weapons.
+      Dispatcher->DispatchMsg(SEND_MSG_IMMEDIATELY,
+                              ID(),
+                              msg.Sender,
+                              Msg_YouGotMeYouSOB,
+                              NO_ADDITIONAL_INFO);
+    }
 
-		//if this bot is now dead let the shooter know
-		if (isDead())
-		{
-			Dispatcher->DispatchMsg(SEND_MSG_IMMEDIATELY,
-				ID(),
-				msg.Sender,
-				Msg_YouGotMeYouSOB,
-				NO_ADDITIONAL_INFO);
-		}
+    return true;
 
-		return true;
+  case Msg_YouGotMeYouSOB:
+    
+    IncrementScore();
+    
+    //the bot this bot has just killed should be removed as the target
+    m_pTargSys->ClearTarget();
 
-	case Msg_YouGotMeYouSOB:
+    return true;
 
-		IncrementScore();
+  case Msg_GunshotSound:
 
-		//the bot this bot has just killed should be removed as the target
-		m_pTargSys->ClearTarget();
+    //add the source of this sound to the bot's percepts
+    GetSensoryMem()->UpdateWithSoundSource((Raven_Bot*)msg.ExtraInfo);
 
-		return true;
+    return true;
 
-	case Msg_GunshotSound:
+  case Msg_UserHasRemovedBot:
+    {
 
-		//add the source of this sound to the bot's percepts
-		GetSensoryMem()->UpdateWithSoundSource((Raven_Bot*)msg.ExtraInfo);
+      Raven_Bot* pRemovedBot = (Raven_Bot*)msg.ExtraInfo;
 
-		return true;
+      GetSensoryMem()->RemoveBotFromMemory(pRemovedBot);
 
-	case Msg_UserHasRemovedBot:
-	{
+      //if the removed bot is the target, make sure the target is cleared
+      if (pRemovedBot == GetTargetSys()->GetTarget())
+      {
+        GetTargetSys()->ClearTarget();
+      }
 
-		Raven_Bot* pRemovedBot = (Raven_Bot*)msg.ExtraInfo;
+      return true;
+    }
 
-		GetSensoryMem()->RemoveBotFromMemory(pRemovedBot);
+  case Msg_UserHasDesignatedATarget:
+  {
+      GetTargetSys()->SetTargetPlayer((Raven_Bot*)msg.ExtraInfo);
+      GetSensoryMem()->UpdateWithSoundSource((Raven_Bot*)msg.ExtraInfo);
+      return true;
+  }
 
-		//if the removed bot is the target, make sure the target is cleared
-		if (pRemovedBot == GetTargetSys()->GetTarget())
-		{
-			GetTargetSys()->ClearTarget();
-		}
+  case Msg_UserHasRemovedTarget:
+  {
+      GetTargetSys()->ClearTargetPlayer();
+      return true;
+  }
 
-		return true;
-	}
-
-	case Msg_UserHasDesignatedATarget:
-	{
-		GetTargetSys()->SetTargetPlayer((Raven_Bot*)msg.ExtraInfo);
-		GetSensoryMem()->UpdateWithSoundSource((Raven_Bot*)msg.ExtraInfo);
-		return true;
-	}
-
-	case Msg_UserHasRemovedTarget:
-	{
-		GetTargetSys()->ClearTargetPlayer();
-		return true;
-	}
-
-	default: return false;
-	}
+  default: return false;
+  }
 }
 
 //------------------ RotateFacingTowardPosition -------------------------------

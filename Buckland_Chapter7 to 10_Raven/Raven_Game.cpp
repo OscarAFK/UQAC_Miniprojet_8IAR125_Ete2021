@@ -22,9 +22,11 @@
 #include "armory/Projectile_Pellet.h"
 #include "armory/Projectile_Slug.h"
 #include "armory/Projectile_Bolt.h"
-
+#include "Debug/DebugConsole.h"
 #include "goals/Goal_Think.h"
 #include "goals/Raven_Goal_Types.h"
+typedef std::map<int, Raven_Weapon*>  WeaponMap;
+
 
 #include "../Buckland_Chapter7 to 10_Raven/MLP/CData.h"
 #include "../Buckland_Chapter7 to 10_Raven/MLP/CNeuralNet.h"
@@ -193,7 +195,9 @@ void Raven_Game::Update()
     {
       //create a grave
       m_pGraveMarkers->AddGrave((*curBot)->Pos());
-
+      //drop weapons here 
+      WeaponMap weaponInventory= (*curBot)->GetWeaponSys()->getAllWeaponsFromInventory();
+      //addWeaponGiver to certain location that is know from the member of the team
       //change its status to spawning
       (*curBot)->SetSpawning();
     }
@@ -513,7 +517,7 @@ void Raven_Game::TrainNeurNet()
 		}
 		catch (const std::exception&)
 		{
-			cout << "Problème lors de la sauvegarde" << endl;
+			cout << "ProblÃ¨me lors de la sauvegarde" << endl;
 		}
 	}
 	else {

@@ -13,6 +13,7 @@
 //-----------------------------------------------------------------------------
 #include <map>
 #include "2d/vector2d.h"
+#include "Fuzzy/FuzzyModule.h"
 #include "armory/Raven_Weapon.h"
 
 class Raven_Bot;
@@ -30,6 +31,8 @@ private:
 private:
 
   Raven_Bot*       m_pOwner;
+  FuzzyModule   m_FuzzyModule;
+  double LastDesirabilityScore;
 
   //pointers to the weapons the bot is carrying (a bot may only carry one
   //instance of each weapon)
@@ -77,7 +80,7 @@ public:
   //this method aims the bot's current weapon at the target (if there is a
   //target) and, if aimed correctly, fires a round. (Called each update-step
   //from Raven_Bot::Update)
-  void          TakeAimAndShoot()const;
+  void          TakeAimAndShoot();//const;
 
   //this method determines the most appropriate weapon to use given the current
   //game state. (Called every n update-steps from Raven_Bot::Update)
@@ -107,11 +110,15 @@ public:
 
   //returns the amount of ammo remaining for the specified weapon
   int           GetAmmoRemainingForWeapon(unsigned int weapon_type);
-
+  WeaponMap      getAllWeaponsFromInventory() { return m_WeaponMap; }
   double         ReactionTime()const{return m_dReactionTime;}
 
   void          RenderCurrentWeapon()const;
   void          RenderDesirabilities()const;
+
+  double getShotDesirability(double distToTarget, double timeTargetHasBeenVisible, double targetVelocity);
+
+  void initializeFuzzyModule();
 };
 
 #endif
